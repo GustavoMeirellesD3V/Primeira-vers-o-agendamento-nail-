@@ -311,9 +311,14 @@
     async createAppointment(appt) {
       assertConfigured();
       const payload = mapAppointmentToDb({ ...appt, status: appt.status || "pendente" });
-      const { data, error } = await sb.from("appointments").insert(payload).select().single();
+      // OBS: sem .select() de propósito. Um visitante anônimo pode INSERIR
+      // um agendamento (política de RLS "appointments: criar publico"), mas
+      // não tem permissão de LEITURA na tabela — só a admin autenticada lê.
+      // Pedir .select() aqui exigiria ler a linha recém-criada, o que a RLS
+      // nega para o visitante e fazia a confirmação falhar sempre.
+      const { error } = await sb.from("appointments").insert(payload);
       if (error) throw error;
-      return mapAppointmentFromDb(data);
+      return { ...appt, status: payload.status };
     },
     async updateAppointment(id, patch) {
       assertConfigured();
