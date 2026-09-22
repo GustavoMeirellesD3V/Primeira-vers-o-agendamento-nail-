@@ -16,11 +16,12 @@
     <div class="login-card">
       <div class="logo-badge" data-bind="logo" style="margin:0 auto 16px;">N</div>
       <h1>Área Administrativa</h1>
-      <p class="subtitle" style="text-align:center;">Entre para gerenciar sua agenda</p>
+      <p class="subtitle" style="text-align:center;" id="login-subtitle">Entre para gerenciar sua agenda</p>
 
       <div class="login-error" id="login-error">E-mail ou senha inválidos.</div>
       <div class="login-error" id="login-info" style="background:#E3F1E6;color:var(--color-success);">Enviamos um link de redefinição para o seu e-mail.</div>
 
+      <!-- ETAPA 1: e-mail + senha -->
       <form id="login-form">
         <div class="form-group">
           <label for="email">E-mail</label>
@@ -33,8 +34,24 @@
         <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Entrar</button>
       </form>
 
-      <div class="login-footer-link">
+      <div class="login-footer-link" id="forgot-wrap">
         <a href="#" id="forgot-link">Esqueci minha senha</a>
+      </div>
+
+      <!-- ETAPA 2: código de 6 dígitos enviado por e-mail -->
+      <form id="code-form" style="display:none;">
+        <div class="form-group">
+          <label for="code">Código de verificação</label>
+          <input type="text" id="code" name="code" placeholder="000000" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required style="text-align:center;letter-spacing:6px;font-size:1.3rem;font-weight:700;">
+          <p class="form-hint" style="margin-top:8px;">Confira sua caixa de entrada (e o spam) — enviamos um código para <strong id="code-email"></strong>.</p>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="verify-btn">Confirmar código</button>
+      </form>
+
+      <div class="login-footer-link" id="resend-wrap" style="display:none;">
+        <a href="#" id="resend-link">Reenviar código</a>
+        &nbsp;·&nbsp;
+        <a href="#" id="back-link">Usar outro e-mail</a>
       </div>
     </div>
   </div>
@@ -54,26 +71,87 @@
         return;
       }
 
+      const subtitle = document.getElementById('login-subtitle');
       const form = document.getElementById('login-form');
+      const codeForm = document.getElementById('code-form');
+      const forgotWrap = document.getElementById('forgot-wrap');
+      const resendWrap = document.getElementById('resend-wrap');
       const errorBox = document.getElementById('login-error');
       const infoBox = document.getElementById('login-info');
       const submitBtn = document.getElementById('submit-btn');
+      const verifyBtn = document.getElementById('verify-btn');
+      const codeEmailLabel = document.getElementById('code-email');
+
+      let pendingEmail = '';
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorBox.classList.remove('show');
         infoBox.classList.remove('show');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Entrando...';
+        submitBtn.textContent = 'Verificando...';
         try {
-          await DB.login(form.email.value, form.password.value);
+          const email = form.email.value.trim();
+          await DB.loginPassword(email, form.password.value);
+          pendingEmail = email;
+
+          // troca para a etapa 2 (código por e-mail)
+          form.style.display = 'none';
+          forgotWrap.style.display = 'none';
+          codeForm.style.display = '';
+          resendWrap.style.display = '';
+          codeEmailLabel.textContent = email;
+          subtitle.textContent = 'Digite o código que enviamos para o seu e-mail';
+          document.getElementById('code').focus();
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.classList.add('show');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Entrar';
+        }
+      });
+
+      codeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.classList.remove('show');
+        infoBox.classList.remove('show');
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = 'Confirmando...';
+        try {
+          await DB.loginVerifyCode(pendingEmail, document.getElementById('code').value.trim());
           window.location.href = 'admin/dashboard.html';
         } catch (err) {
           errorBox.textContent = err.message;
           errorBox.classList.add('show');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Entrar';
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = 'Confirmar código';
         }
+      });
+
+      document.getElementById('resend-link').addEventListener('click', async (e) => {
+        e.preventDefault();
+        errorBox.classList.remove('show');
+        try {
+          await DB.resendLoginCode(pendingEmail);
+          infoBox.textContent = 'Reenviamos o código para o seu e-mail.';
+          infoBox.classList.add('show');
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.classList.add('show');
+        }
+      });
+
+      document.getElementById('back-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        errorBox.classList.remove('show');
+        infoBox.classList.remove('show');
+        codeForm.style.display = 'none';
+        resendWrap.style.display = 'none';
+        form.style.display = '';
+        forgotWrap.style.display = '';
+        subtitle.textContent = 'Entre para gerenciar sua agenda';
+        form.password.value = '';
       });
 
       document.getElementById('forgot-link').addEventListener('click', async (e) => {

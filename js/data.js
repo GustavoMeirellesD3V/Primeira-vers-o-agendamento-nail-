@@ -432,11 +432,37 @@
       return slots;
     },
 
-    /* ---------- AUTENTICAÇÃO ADMIN (Supabase Auth real) ---------- */
-    async login(email, password) {
+    /* ---------- AUTENTICAÇÃO ADMIN (Supabase Auth + código por e-mail) ----------
+       Login em 2 etapas:
+       1) loginPassword() confere e-mail/senha. Se estiver certo, NÃO deixa a
+          sessão aberta ainda — encerra ela e dispara um código de 6 dígitos
+          por e-mail (via sb.auth.signInWithOtp).
+       2) loginVerifyCode() confere o código digitado e, só então, cria a
+          sessão de verdade (via sb.auth.verifyOtp). É esse o "segundo fator".
+    ---------------------------------------------------------------------- */
+    async loginPassword(email, password) {
       assertConfigured();
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error("E-mail ou senha inválidos.");
+      // derruba a sessão da senha — só o código por e-mail deve autenticar de fato
+      await sb.auth.signOut();
+      const { error: otpError } = await sb.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) throw new Error("Não foi possível enviar o código por e-mail. Tente novamente em instantes.");
+      return true;
+    },
+    async resendLoginCode(email) {
+      assertConfigured();
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      if (error) throw new Error("Não foi possível reenviar o código.");
+      return true;
+    },
+    async loginVerifyCode(email, code) {
+      assertConfigured();
+      const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: "email" });
+      if (error) throw new Error("Código inválido ou expirado. Confira e tente de novo.");
       return { token: data.session.access_token, email: data.user.email };
     },
     async logout() {
