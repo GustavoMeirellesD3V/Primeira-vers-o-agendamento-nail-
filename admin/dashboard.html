@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Dashboard", subtitle: "Visão geral do seu dia" });
+      if (!content) return;
+
+      const today = DB.todayISO();
+      const [appointmentsToday, services, allAppointments] = await Promise.all([
+        DB.getAppointments({ date: today }),
+        DB.getServices(),
+        DB.getAppointments({}),
+      ]);
+
+      const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
+      const activeToday = appointmentsToday.filter((a) => a.status !== "cancelado");
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const next = activeToday
+        .filter((a) => {
+          const [h, m] = a.horario.split(":").map(Number);
+          return h * 60 + m >= nowMinutes;
+        })
+        .sort((a, b) => a.horario.localeCompare(b.horario))[0];
+
+      const occupiedToday = activeToday.length;
+      const faturamentoPrevisto = activeToday.reduce((sum, a) => sum + (serviceMap[a.serviceId]?.preco || 0), 0);
+
+      content.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="ic">🗓️</div>
+            <div class="value">${activeToday.length}</div>
+            <div class="label">Agendamentos hoje</div>
+          </div>
+          <div class="stat-card">
+            <div class="ic">⏭️</div>
+            <div class="value">${next ? next.horario : "—"}</div>
+            <div class="label">Próximo atendimento</div>
+          </div>
+          <div class="stat-card">
+            <div class="ic">⏰</div>
+            <div class="value">${occupiedToday}</div>
+            <div class="label">Horários ocupados</div>
+          </div>
+          <div class="stat-card">
+            <div class="ic">💰</div>
+            <div class="value">${Admin.formatCurrency(faturamentoPrevisto)}</div>
+            <div class="label">Faturamento previsto</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Agenda de hoje</h2>
+            <a href="agenda.html" class="btn btn-ghost btn-sm">Ver agenda completa →</a>
+          </div>
+          <div id="today-list"></div>
+        </div>
+      `;
+
+      const listEl = document.getElementById("today-list");
+      if (!activeToday.length) {
+        listEl.innerHTML = `<div class="empty-hint">Nenhum agendamento para hoje. 🎉</div>`;
+      } else {
+        listEl.innerHTML = activeToday
+          .sort((a, b) => a.horario.localeCompare(b.horario))
+          .map(
+            (a) => `
+          <div class="agenda-item">
+            <div class="time">${a.horario}</div>
+            <div class="info">
+              <strong>${a.clienteNome}</strong>
+              <span>${serviceMap[a.serviceId]?.nome || "Serviço removido"} · ${Admin.statusBadge(a.status)}</span>
+            </div>
+            <div class="actions">
+              <a class="icon-btn" href="agendamentos.html?id=${a.id}" title="Ver detalhes">👁️</a>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+    })();
+  </script>
+</body>
+</html>

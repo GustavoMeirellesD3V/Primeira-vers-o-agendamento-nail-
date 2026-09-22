@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Configurações — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    const PALETTES = [
+      { primary: "#C98CA0", primaryDark: "#A96A7E", primaryLight: "#F6E4E8", nude: "#EFE1D4", gold: "#C9A24B" },
+      { primary: "#B37B9A", primaryDark: "#8C5A78", primaryLight: "#F1E3EC", nude: "#EAD9C9", gold: "#BFA05A" },
+      { primary: "#D6A290", primaryDark: "#B27A64", primaryLight: "#F7E7DF", nude: "#EFE0D2", gold: "#C79A4B" },
+      { primary: "#9C8AA5", primaryDark: "#75647E", primaryLight: "#EAE4EF", nude: "#E7DED2", gold: "#B99B5B" },
+      { primary: "#7C9A92", primaryDark: "#5C7A72", primaryLight: "#E3ECE9", nude: "#E9E1D2", gold: "#B69A5C" },
+    ];
+
+    (async () => {
+      const content = await Admin.buildShell({ title: "Configurações", subtitle: "Personalize os dados e a identidade visual do seu site" });
+      if (!content) return;
+
+      const settings = await DB.getSettings();
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header"><h2>Dados da profissional</h2></div>
+          <form class="admin-form" id="form-dados">
+            <div class="form-group"><label>Nome</label><input type="text" id="s-nome" value="${settings.nome}"></div>
+            <div class="form-group"><label>Especialidade / subtítulo</label><input type="text" id="s-subtitulo" value="${settings.subtitulo}"></div>
+            <div class="form-group"><label>Descrição</label><textarea id="s-descricao" rows="3">${settings.descricao}</textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>WhatsApp (com DDI+DDD)</label><input type="text" id="s-whatsapp" value="${settings.whatsapp}" placeholder="5511999999999"></div>
+              <div class="form-group"><label>Instagram</label><input type="text" id="s-instagram" value="${settings.instagram}"></div>
+            </div>
+            <div class="form-group"><label>Endereço</label><input type="text" id="s-endereco" value="${settings.endereco}"></div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Foto de destaque</label>
+                <input type="file" id="s-foto-file" accept="image/*">
+              </div>
+              <div class="form-group">
+                <label>Logo</label>
+                <input type="file" id="s-logo-file" accept="image/*">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Salvar dados</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Identidade visual</h2></div>
+          <p class="form-hint" style="margin-bottom:12px;">Escolha uma paleta pronta ou personalize as cores manualmente.</p>
+          <div class="color-swatch-row" id="palette-row"></div>
+
+          <div class="form-row" style="margin-top:20px;">
+            <div class="form-group"><label>Rosa principal</label><input type="color" id="c-primary" value="${settings.cores.primary}"></div>
+            <div class="form-group"><label>Rosa escuro</label><input type="color" id="c-primaryDark" value="${settings.cores.primaryDark}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Rosa claro</label><input type="color" id="c-primaryLight" value="${settings.cores.primaryLight}"></div>
+            <div class="form-group"><label>Nude</label><input type="color" id="c-nude" value="${settings.cores.nude}"></div>
+          </div>
+          <div class="form-group"><label>Dourado</label><input type="color" id="c-gold" value="${settings.cores.gold}"></div>
+          <button class="btn btn-outline btn-block" id="save-colors">Aplicar cores</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Regras de agendamento</h2></div>
+          <form class="admin-form" id="form-regras">
+            <div class="form-group">
+              <label>Mensagem de confirmação</label>
+              <textarea id="r-mensagem" rows="2">${settings.mensagemConfirmacao}</textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Tempo mínimo de antecedência (horas)</label>
+                <input type="number" id="r-tempo" min="0" value="${settings.tempoMinimoAgendamentoHoras}">
+              </div>
+              <div class="form-group">
+                <label>Dias futuros visíveis no calendário</label>
+                <input type="number" id="r-dias" min="1" value="${settings.diasFuturosVisiveis}">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Salvar regras</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Horários de funcionamento</h2></div>
+          <p class="form-hint">Configuração detalhada de dias, expediente e pausas.</p>
+          <a href="horarios.html" class="btn btn-outline btn-block">Gerenciar horários →</a>
+        </div>
+
+        <p class="form-hint" id="feedback" style="text-align:center;"></p>
+      `;
+
+      // paletas prontas
+      const paletteRow = document.getElementById("palette-row");
+      paletteRow.innerHTML = PALETTES.map((p, i) => `<div class="color-swatch" data-idx="${i}" style="background:${p.primary}"></div>`).join("");
+      paletteRow.querySelectorAll(".color-swatch").forEach((sw) => {
+        sw.addEventListener("click", () => {
+          const p = PALETTES[sw.dataset.idx];
+          document.getElementById("c-primary").value = p.primary;
+          document.getElementById("c-primaryDark").value = p.primaryDark;
+          document.getElementById("c-primaryLight").value = p.primaryLight;
+          document.getElementById("c-nude").value = p.nude;
+          document.getElementById("c-gold").value = p.gold;
+          paletteRow.querySelectorAll(".color-swatch").forEach((s) => s.classList.remove("selected"));
+          sw.classList.add("selected");
+        });
+      });
+
+      function showFeedback(msg) {
+        const fb = document.getElementById("feedback");
+        fb.textContent = msg;
+        setTimeout(() => (fb.textContent = ""), 2500);
+      }
+
+      function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      document.getElementById("form-dados").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const patch = {
+          nome: document.getElementById("s-nome").value.trim(),
+          subtitulo: document.getElementById("s-subtitulo").value.trim(),
+          descricao: document.getElementById("s-descricao").value.trim(),
+          whatsapp: document.getElementById("s-whatsapp").value.replace(/\D/g, ""),
+          instagram: document.getElementById("s-instagram").value.trim(),
+          endereco: document.getElementById("s-endereco").value.trim(),
+        };
+        const fotoFile = document.getElementById("s-foto-file").files[0];
+        const logoFile = document.getElementById("s-logo-file").files[0];
+        if (fotoFile) patch.foto = await fileToDataUrl(fotoFile);
+        if (logoFile) patch.logo = await fileToDataUrl(logoFile);
+
+        await DB.saveSettings(patch);
+        showFeedback("Dados salvos com sucesso ✓");
+      });
+
+      document.getElementById("save-colors").addEventListener("click", async () => {
+        const cores = {
+          primary: document.getElementById("c-primary").value,
+          primaryDark: document.getElementById("c-primaryDark").value,
+          primaryLight: document.getElementById("c-primaryLight").value,
+          nude: document.getElementById("c-nude").value,
+          gold: document.getElementById("c-gold").value,
+        };
+        await DB.saveSettings({ cores });
+        Admin.buildShell; // no-op reference to avoid tree-shaking confusion
+        location.reload();
+      });
+
+      document.getElementById("form-regras").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await DB.saveSettings({
+          mensagemConfirmacao: document.getElementById("r-mensagem").value.trim(),
+          tempoMinimoAgendamentoHoras: parseInt(document.getElementById("r-tempo").value, 10) || 0,
+          diasFuturosVisiveis: parseInt(document.getElementById("r-dias").value, 10) || 30,
+        });
+        showFeedback("Regras salvas com sucesso ✓");
+      });
+    })();
+  </script>
+</body>
+</html>

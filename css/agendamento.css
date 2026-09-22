@@ -1,0 +1,318 @@
+/* =========================================================
+   NAIL STUDIO — agendamento.css
+   Estilos do fluxo de agendamento (etapas)
+   ========================================================= */
+
+.book-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255, 253, 252, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+}
+.book-header-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+/* ---------- STEPPER ---------- */
+.stepper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+}
+.stepper .dot {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: var(--transition);
+}
+.stepper .dot.active,
+.stepper .dot.done { background: var(--color-primary); }
+
+.step-label {
+  text-align: center;
+  padding: var(--space-md) var(--space-md) 0;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.step-label span {
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 0.7rem;
+  color: var(--color-gold);
+  font-weight: 700;
+}
+.step-label h2 { margin-top: 4px; }
+
+.book-main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-md) 140px;
+}
+
+/* ---------- STEP: SERVIÇO ---------- */
+.service-select-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.service-select-card:hover { border-color: var(--color-primary); }
+.service-select-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: var(--shadow-soft);
+}
+.service-select-card .thumb {
+  width: 56px; height: 56px; border-radius: var(--radius-sm);
+  background: var(--color-nude); flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+}
+.service-select-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.service-select-card .info { flex: 1; }
+.service-select-card .info h3 { font-size: 1.05rem; margin-bottom: 2px; }
+.service-select-card .info p { margin: 0; font-size: 0.85rem; }
+.service-select-card .meta { display: flex; gap: var(--space-sm); font-size: 0.78rem; color: var(--color-text-soft); margin-top: 6px; }
+.service-select-card .price { font-family: var(--font-display); font-weight: 700; color: var(--color-primary-dark); white-space: nowrap; }
+.service-select-card .check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--color-border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: #fff;
+}
+.service-select-card.selected .check { background: var(--color-primary); border-color: var(--color-primary); }
+
+/* ---------- STEP: DATA (CALENDÁRIO) ---------- */
+.calendar-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-soft);
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+.calendar-nav button {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  display: flex; align-items: center; justify-content: center;
+}
+.calendar-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+.calendar-month-label { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; text-transform: capitalize; }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+.calendar-grid .weekday {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  padding-bottom: 4px;
+}
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: var(--transition);
+  position: relative;
+}
+.calendar-day.empty { visibility: hidden; }
+.calendar-day.disabled { color: #D8CFD2; cursor: not-allowed; text-decoration: line-through; }
+.calendar-day.available:hover { background: var(--color-primary-light); }
+.calendar-day.selected { background: var(--color-primary); color: #fff; box-shadow: var(--shadow-soft); }
+.calendar-day.today::after {
+  content: "";
+  position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--color-gold);
+}
+.calendar-legend {
+  display: flex; gap: var(--space-md); justify-content: center;
+  margin-top: var(--space-md); font-size: 0.75rem; color: var(--color-text-soft);
+}
+.calendar-legend span { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.legend-dot.avail { background: var(--color-primary-light); border: 1.5px solid var(--color-primary); }
+.legend-dot.unavail { background: #F1ECED; }
+
+/* ---------- STEP: HORÁRIO ---------- */
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.time-slot {
+  padding: 14px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.time-slot:hover { border-color: var(--color-primary); }
+.time-slot.selected { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-text-soft);
+}
+.empty-state .emoji { font-size: 2.2rem; margin-bottom: var(--space-sm); }
+
+/* ---------- STEP: DADOS DA CLIENTE ---------- */
+.form-group { margin-bottom: var(--space-md); }
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--color-text);
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--color-text);
+  transition: var(--transition);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus { outline: none; border-color: var(--color-primary); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-hint { font-size: 0.75rem; color: var(--color-text-soft); margin-top: 4px; }
+.field-error { font-size: 0.75rem; color: var(--color-danger); margin-top: 4px; display: none; }
+.form-group.invalid input,
+.form-group.invalid textarea { border-color: var(--color-danger); }
+.form-group.invalid .field-error { display: block; }
+
+/* ---------- STEP: CONFIRMAÇÃO / RESUMO ---------- */
+.summary-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-md);
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-row .label {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.summary-row .value { font-weight: 600; text-align: right; }
+.summary-row .value.price { color: var(--color-primary-dark); font-family: var(--font-display); font-size: 1.2rem; }
+
+/* ---------- SUCESSO ---------- */
+.success-screen {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+}
+.success-icon {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: var(--color-success);
+  color: #fff; font-size: 2.4rem;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto var(--space-lg);
+  box-shadow: var(--shadow-elevated);
+  animation: pop 0.5s ease;
+}
+@keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* ---------- BARRA INFERIOR FIXA (navegação da etapa) ---------- */
+.book-footer {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom));
+  z-index: 30;
+}
+.book-footer-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.book-footer .total {
+  flex: 1;
+}
+.book-footer .total .lbl { font-size: 0.68rem; text-transform: uppercase; color: var(--color-text-soft); letter-spacing: 1px; }
+.book-footer .total .val { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--color-primary-dark); }
+.book-footer .btn-primary { flex-shrink: 0; padding: 15px 26px; }
+
+.toast {
+  position: fixed;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--color-text);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition);
+  z-index: 60;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

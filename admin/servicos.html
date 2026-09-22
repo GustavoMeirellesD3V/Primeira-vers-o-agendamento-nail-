@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Serviços — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-box">
+      <div class="panel-header">
+        <h2 id="modal-title">Novo serviço</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <form class="admin-form" id="service-form">
+        <div class="form-group">
+          <label>Nome do serviço *</label>
+          <input type="text" id="f-nome" required>
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <textarea id="f-descricao" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preço (R$) *</label>
+            <input type="number" id="f-preco" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label>Duração (min) *</label>
+            <input type="number" id="f-duracao" min="5" step="5" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>URL da imagem (opcional)</label>
+          <input type="text" id="f-imagem" placeholder="https://...">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <label class="switch"><input type="checkbox" id="f-ativo" checked><span class="slider"></span></label>
+          <label style="margin:0;">Serviço ativo (visível para clientes)</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Salvar serviço</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Serviços", subtitle: "Gerencie o catálogo de serviços oferecidos" });
+      if (!content) return;
+
+      let editingId = null;
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Meus serviços</h2>
+            <button class="btn btn-primary btn-sm" id="new-service-btn">+ Novo serviço</button>
+          </div>
+          <div id="service-list"></div>
+        </div>
+      `;
+
+      async function renderList() {
+        const services = await DB.getServices();
+        const holder = document.getElementById("service-list");
+        if (!services.length) {
+          holder.innerHTML = `<div class="empty-hint">Nenhum serviço cadastrado ainda.</div>`;
+          return;
+        }
+        holder.innerHTML = services
+          .map(
+            (s) => `
+          <div class="admin-service-row">
+            <div class="thumb">${s.imagem ? `<img src="${s.imagem}" alt="${s.nome}">` : "💅"}</div>
+            <div class="info">
+              <strong>${s.nome} ${!s.ativo ? '<span class="badge badge-cancelado">Inativo</span>' : ""}</strong>
+              <span>${s.duracaoMin} min</span>
+            </div>
+            <div class="price">${Admin.formatCurrency(s.preco)}</div>
+            <div class="actions" style="display:flex;gap:6px;margin-left:10px;">
+              <button class="icon-btn" data-edit="${s.id}" title="Editar">✏️</button>
+              <button class="icon-btn" data-del="${s.id}" title="Excluir">🗑️</button>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        holder.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => openModal(b.dataset.edit)));
+        holder.querySelectorAll("[data-del]").forEach((b) =>
+          b.addEventListener("click", async () => {
+            if (confirm("Excluir este serviço?")) {
+              await DB.deleteService(b.dataset.del);
+              renderList();
+            }
+          })
+        );
+      }
+
+      const backdrop = document.getElementById("modal-backdrop");
+      document.getElementById("modal-close").addEventListener("click", () => backdrop.classList.remove("open"));
+      document.getElementById("new-service-btn").addEventListener("click", () => openModal(null));
+
+      async function openModal(id) {
+        editingId = id;
+        document.getElementById("modal-title").textContent = id ? "Editar serviço" : "Novo serviço";
+        if (id) {
+          const s = await DB.getService(id);
+          document.getElementById("f-nome").value = s.nome;
+          document.getElementById("f-descricao").value = s.descricao || "";
+          document.getElementById("f-preco").value = s.preco;
+          document.getElementById("f-duracao").value = s.duracaoMin;
+          document.getElementById("f-imagem").value = s.imagem || "";
+          document.getElementById("f-ativo").checked = s.ativo;
+        } else {
+          document.getElementById("service-form").reset();
+          document.getElementById("f-ativo").checked = true;
+        }
+        backdrop.classList.add("open");
+      }
+
+      document.getElementById("service-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const payload = {
+          nome: document.getElementById("f-nome").value.trim(),
+          descricao: document.getElementById("f-descricao").value.trim(),
+          preco: parseFloat(document.getElementById("f-preco").value),
+          duracaoMin: parseInt(document.getElementById("f-duracao").value, 10),
+          imagem: document.getElementById("f-imagem").value.trim(),
+          ativo: document.getElementById("f-ativo").checked,
+        };
+        if (editingId) await DB.updateService(editingId, payload);
+        else await DB.createService(payload);
+        backdrop.classList.remove("open");
+        renderList();
+      });
+
+      renderList();
+    })();
+  </script>
+</body>
+</html>

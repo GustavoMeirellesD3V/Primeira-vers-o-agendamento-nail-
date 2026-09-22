@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Agendamentos — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-box">
+      <div class="panel-header">
+        <h2>Editar agendamento</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <form class="admin-form" id="edit-form">
+        <div class="form-group">
+          <label>Cliente</label>
+          <input type="text" id="edit-nome">
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input type="text" id="edit-whatsapp">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="edit-data">
+          </div>
+          <div class="form-group">
+            <label>Horário</label>
+            <input type="time" id="edit-horario">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="edit-status">
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="faltou">Não compareceu</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Observação</label>
+          <textarea id="edit-observacao" rows="2"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Salvar alterações</button>
+          <button type="button" id="delete-btn" class="btn btn-sm" style="background:var(--color-danger);color:#fff;border-radius:var(--radius-full);padding:0 18px;">Excluir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Agendamentos", subtitle: "Todos os agendamentos da sua agenda" });
+      if (!content) return;
+
+      let services = await DB.getServices();
+      const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
+      let currentFilter = "todos";
+      let editingId = null;
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Lista de agendamentos</h2>
+            <div class="view-tabs" id="status-tabs">
+              <button data-status="todos" class="active">Todos</button>
+              <button data-status="pendente">Pendentes</button>
+              <button data-status="confirmado">Confirmados</button>
+              <button data-status="concluido">Concluídos</button>
+              <button data-status="cancelado">Cancelados</button>
+            </div>
+          </div>
+          <div id="appt-list"></div>
+        </div>
+      `;
+
+      document.getElementById("status-tabs").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-status]");
+        if (!btn) return;
+        currentFilter = btn.dataset.status;
+        document.querySelectorAll("#status-tabs button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderList();
+      });
+
+      async function renderList() {
+        const filter = currentFilter === "todos" ? {} : { status: currentFilter };
+        const list = await DB.getAppointments(filter);
+        const holder = document.getElementById("appt-list");
+
+        if (!list.length) {
+          holder.innerHTML = `<div class="empty-hint">Nenhum agendamento encontrado.</div>`;
+          return;
+        }
+
+        holder.innerHTML = list
+          .slice()
+          .reverse()
+          .map(
+            (a) => `
+          <div class="agenda-item">
+            <div class="info">
+              <strong>${a.clienteNome} — ${serviceMap[a.serviceId]?.nome || "Serviço removido"}</strong>
+              <span>${Admin.formatDateBR(a.data)} às ${a.horario} · ${Admin.statusBadge(a.status)}</span>
+            </div>
+            <div class="actions">
+              <button class="icon-btn" data-edit="${a.id}" title="Editar">✏️</button>
+              <a class="icon-btn" href="${Admin.waLink(a.clienteWhatsapp, "Olá " + a.clienteNome + "!")}" target="_blank" title="WhatsApp">💬</a>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        holder.querySelectorAll("[data-edit]").forEach((btn) => {
+          btn.addEventListener("click", () => openEdit(btn.dataset.edit));
+        });
+      }
+
+      const backdrop = document.getElementById("modal-backdrop");
+      document.getElementById("modal-close").addEventListener("click", () => backdrop.classList.remove("open"));
+
+      async function openEdit(id) {
+        const a = await DB.getAppointment(id);
+        if (!a) return;
+        editingId = id;
+        document.getElementById("edit-nome").value = a.clienteNome;
+        document.getElementById("edit-whatsapp").value = a.clienteWhatsapp;
+        document.getElementById("edit-data").value = a.data;
+        document.getElementById("edit-horario").value = a.horario;
+        document.getElementById("edit-status").value = a.status;
+        document.getElementById("edit-observacao").value = a.observacao || "";
+        backdrop.classList.add("open");
+      }
+
+      document.getElementById("edit-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!editingId) return;
+        await DB.updateAppointment(editingId, {
+          clienteNome: document.getElementById("edit-nome").value,
+          clienteWhatsapp: document.getElementById("edit-whatsapp").value,
+          data: document.getElementById("edit-data").value,
+          horario: document.getElementById("edit-horario").value,
+          status: document.getElementById("edit-status").value,
+          observacao: document.getElementById("edit-observacao").value,
+        });
+        backdrop.classList.remove("open");
+        renderList();
+      });
+
+      document.getElementById("delete-btn").addEventListener("click", async () => {
+        if (!editingId) return;
+        if (confirm("Excluir este agendamento permanentemente?")) {
+          await DB.deleteAppointment(editingId);
+          backdrop.classList.remove("open");
+          renderList();
+        }
+      });
+
+      renderList();
+
+      // Se veio de outra página com ?id=, abre direto o modal de edição
+      const params = new URLSearchParams(window.location.search);
+      const preId = params.get("id");
+      if (preId) openEdit(preId);
+    })();
+  </script>
+</body>
+</html>

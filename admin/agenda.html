@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Minha Agenda — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/agendamento.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-box">
+      <div class="panel-header">
+        <h2>Detalhes do agendamento</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/calendario.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Minha Agenda", subtitle: "Visualize por dia, semana ou mês" });
+      if (!content) return;
+
+      const state = {
+        view: "dia", // dia | semana | mes
+        date: DB.todayISO(),
+        calYear: new Date().getFullYear(),
+        calMonth: new Date().getMonth(),
+      };
+
+      let services = await DB.getServices();
+      const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header">
+            <div class="view-tabs" id="view-tabs">
+              <button data-view="dia" class="active">Dia</button>
+              <button data-view="semana">Semana</button>
+              <button data-view="mes">Mês</button>
+            </div>
+            <div id="date-nav" style="display:flex;align-items:center;gap:10px;"></div>
+          </div>
+          <div id="agenda-view"></div>
+        </div>
+      `;
+
+      document.getElementById("view-tabs").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-view]");
+        if (!btn) return;
+        state.view = btn.dataset.view;
+        document.querySelectorAll("#view-tabs button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderView();
+      });
+
+      async function renderView() {
+        const nav = document.getElementById("date-nav");
+        const holder = document.getElementById("agenda-view");
+
+        if (state.view === "dia") {
+          nav.innerHTML = navButtons();
+          bindNav(() => shiftDate(-1), () => shiftDate(1));
+          const appts = await DB.getAppointments({ date: state.date });
+          holder.innerHTML = `<h3 style="margin-bottom:12px;text-transform:capitalize;">${formatFull(state.date)}</h3>` +
+            (appts.length
+              ? appts
+                  .filter((a) => a.status !== "cancelado")
+                  .sort((a, b) => a.horario.localeCompare(b.horario))
+                  .map(itemHtml)
+                  .join("")
+              : `<div class="empty-hint">Nenhum agendamento neste dia.</div>`);
+          bindItemClicks(holder);
+        }
+
+        if (state.view === "semana") {
+          nav.innerHTML = navButtons();
+          bindNav(() => shiftDate(-7), () => shiftDate(7));
+          const monday = startOfWeek(state.date);
+          let html = "";
+          const allWeekAppts = await DB.getAppointments({ dateFrom: monday, dateTo: DB.addDaysISO(monday, 6) });
+          for (let i = 0; i < 7; i++) {
+            const iso = DB.addDaysISO(monday, i);
+            const dayAppts = allWeekAppts.filter((a) => a.data === iso && a.status !== "cancelado").sort((a, b) => a.horario.localeCompare(b.horario));
+            html += `<h3 style="margin:18px 0 8px;text-transform:capitalize;font-size:1rem;">${formatFull(iso)}</h3>`;
+            html += dayAppts.length ? dayAppts.map(itemHtml).join("") : `<div class="empty-hint" style="padding:12px;">Sem agendamentos.</div>`;
+          }
+          holder.innerHTML = html;
+          bindItemClicks(holder);
+        }
+
+        if (state.view === "mes") {
+          nav.innerHTML = "";
+          const monthAppts = await DB.getAppointments({
+            dateFrom: `${state.calYear}-${String(state.calMonth + 1).padStart(2, "0")}-01`,
+            dateTo: `${state.calYear}-${String(state.calMonth + 1).padStart(2, "0")}-31`,
+          });
+          const countByDay = {};
+          monthAppts.forEach((a) => {
+            if (a.status === "cancelado") return;
+            countByDay[a.data] = (countByDay[a.data] || 0) + 1;
+          });
+
+          holder.innerHTML = `<div class="calendar-card" id="month-cal"></div>`;
+          const calHolder = document.getElementById("month-cal");
+          await NailCalendar.renderCalendar(calHolder, {
+            year: state.calYear,
+            month: state.calMonth,
+            selectedDate: null,
+            isAvailable: () => true, // no admin, todo dia é "clicável"
+            onSelect: (iso) => {
+              state.date = iso;
+              state.view = "dia";
+              document.querySelectorAll("#view-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === "dia"));
+              renderView();
+            },
+            onMonthChange: (y, m) => {
+              state.calYear = y;
+              state.calMonth = m;
+              renderView();
+            },
+          });
+          // marca dias com agendamento
+          calHolder.querySelectorAll(".calendar-day[data-date]").forEach((el) => {
+            const iso = el.dataset.date;
+            if (countByDay[iso]) {
+              el.style.position = "relative";
+              el.insertAdjacentHTML("beforeend", `<span style="position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--color-gold);"></span>`);
+            }
+          });
+        }
+      }
+
+      function navButtons() {
+        return `
+          <button class="icon-btn" id="nav-prev">←</button>
+          <button class="icon-btn" id="nav-today" style="width:auto;padding:0 12px;font-size:0.75rem;">Hoje</button>
+          <button class="icon-btn" id="nav-next">→</button>
+        `;
+      }
+      function bindNav(prevFn, nextFn) {
+        document.getElementById("nav-prev").addEventListener("click", prevFn);
+        document.getElementById("nav-next").addEventListener("click", nextFn);
+        document.getElementById("nav-today").addEventListener("click", () => { state.date = DB.todayISO(); renderView(); });
+      }
+      function shiftDate(days) { state.date = DB.addDaysISO(state.date, days); renderView(); }
+
+      function itemHtml(a) {
+        const svc = serviceMap[a.serviceId];
+        return `
+          <div class="agenda-item" data-id="${a.id}" style="cursor:pointer;">
+            <div class="time">${a.horario}</div>
+            <div class="info">
+              <strong>${a.clienteNome}</strong>
+              <span>${svc ? svc.nome : "Serviço removido"} · ${Admin.statusBadge(a.status)}</span>
+            </div>
+          </div>`;
+      }
+      function bindItemClicks(holder) {
+        holder.querySelectorAll(".agenda-item[data-id]").forEach((el) => {
+          el.addEventListener("click", () => openModal(el.dataset.id));
+        });
+      }
+
+      function startOfWeek(iso) {
+        const d = new Date(iso + "T00:00:00");
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // segunda-feira como início
+        d.setDate(d.getDate() + diff);
+        return d.toISOString().slice(0, 10);
+      }
+      function formatFull(iso) {
+        const d = new Date(iso + "T00:00:00");
+        return d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+      }
+
+      /* ---------- MODAL DE DETALHES ---------- */
+      const backdrop = document.getElementById("modal-backdrop");
+      document.getElementById("modal-close").addEventListener("click", closeModal);
+      backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
+      function closeModal() { backdrop.classList.remove("open"); }
+
+      async function openModal(id) {
+        const a = await DB.getAppointment(id);
+        if (!a) return;
+        const svc = serviceMap[a.serviceId];
+        document.getElementById("modal-content").innerHTML = `
+          <div class="summary-row"><div class="label">Cliente</div><div class="value">${a.clienteNome}</div></div>
+          <div class="summary-row"><div class="label">Serviço</div><div class="value">${svc ? svc.nome : "—"}</div></div>
+          <div class="summary-row"><div class="label">Data</div><div class="value">${Admin.formatDateBR(a.data)}</div></div>
+          <div class="summary-row"><div class="label">Horário</div><div class="value">${a.horario}</div></div>
+          <div class="summary-row"><div class="label">Telefone</div><div class="value">${a.clienteWhatsapp}</div></div>
+          <div class="summary-row"><div class="label">Status</div><div class="value">${Admin.statusBadge(a.status)}</div></div>
+          ${a.observacao ? `<div class="summary-row"><div class="label">Observação</div><div class="value">${a.observacao}</div></div>` : ""}
+
+          <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+            <a class="btn btn-outline btn-sm" href="agendamentos.html?id=${a.id}">Editar / Reagendar</a>
+            <a class="btn btn-outline btn-sm" href="${Admin.waLink(a.clienteWhatsapp, 'Olá ' + a.clienteNome + '!')}" target="_blank">WhatsApp</a>
+            ${a.status !== "cancelado" ? `<button class="btn btn-sm" style="background:var(--color-danger);color:#fff;border-radius:var(--radius-full);" id="modal-cancel">Cancelar</button>` : ""}
+          </div>
+        `;
+        backdrop.classList.add("open");
+
+        const cancelBtn = document.getElementById("modal-cancel");
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", async () => {
+            if (confirm("Cancelar este agendamento?")) {
+              await DB.cancelAppointment(a.id);
+              closeModal();
+              renderView();
+            }
+          });
+        }
+      }
+
+      renderView();
+    })();
+  </script>
+</body>
+</html>

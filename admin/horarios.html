@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Horários de Funcionamento — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Horários de Funcionamento", subtitle: "Configure os dias e horários em que você atende" });
+      if (!content) return;
+
+      let schedule = await DB.getSchedule();
+
+      content.innerHTML = `
+        <div class="panel">
+          <div id="days-holder"></div>
+          <button class="btn btn-primary btn-block" id="save-schedule" style="margin-top:8px;">Salvar alterações</button>
+          <p class="form-hint" style="text-align:center;margin-top:10px;" id="save-feedback"></p>
+        </div>
+      `;
+
+      const daysHolder = document.getElementById("days-holder");
+
+      function renderDays() {
+        daysHolder.innerHTML = DB.WEEKDAY_KEYS.filter((k) => k !== "").map((key) => dayBlockHtml(key)).join("");
+        // liga eventos
+        DB.WEEKDAY_KEYS.forEach((key) => bindDayEvents(key));
+      }
+
+      // WEEKDAY_KEYS inclui 'dom' no índice 0 (para bater com Date.getDay());
+      // aqui exibimos na ordem segunda→domingo
+      const ORDER = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+
+      function dayBlockHtml(key) {
+        const cfg = schedule[key];
+        return `
+          <div class="day-config" data-day="${key}">
+            <div class="day-config-head">
+              <label style="display:flex;align-items:center;gap:12px;margin:0;cursor:pointer;">
+                <label class="switch"><input type="checkbox" class="toggle-ativo" ${cfg.ativo ? "checked" : ""}><span class="slider"></span></label>
+                <strong>${DB.WEEKDAY_LABELS[key]}</strong>
+              </label>
+              <button class="btn btn-ghost btn-sm toggle-open">${cfg.ativo ? "Editar horários ▾" : ""}</button>
+            </div>
+            <div class="day-config-body ${cfg.ativo ? "" : ""}">
+              <p class="form-hint" style="margin-bottom:8px;">Expediente</p>
+              <div class="expediente-rows"></div>
+              <button type="button" class="add-interval-btn add-expediente">+ Adicionar intervalo de expediente</button>
+
+              <p class="form-hint" style="margin:16px 0 8px;">Pausas (ex: almoço)</p>
+              <div class="pausas-rows"></div>
+              <button type="button" class="add-interval-btn add-pausa">+ Adicionar pausa</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderRanges(dayEl, key) {
+        const cfg = schedule[key];
+        const expWrap = dayEl.querySelector(".expediente-rows");
+        const pauseWrap = dayEl.querySelector(".pausas-rows");
+
+        expWrap.innerHTML = cfg.expediente
+          .map(
+            (r, i) => `
+          <div class="time-range-row" data-idx="${i}">
+            <input type="time" class="exp-inicio" value="${r.inicio}">
+            <span>até</span>
+            <input type="time" class="exp-fim" value="${r.fim}">
+            ${cfg.expediente.length > 1 ? `<button type="button" class="remove-interval remove-exp">Remover</button>` : ""}
+          </div>`
+          )
+          .join("");
+
+        pauseWrap.innerHTML = cfg.pausas.length
+          ? cfg.pausas
+              .map(
+                (r, i) => `
+          <div class="time-range-row" data-idx="${i}">
+            <input type="time" class="pausa-inicio" value="${r.inicio}">
+            <span>até</span>
+            <input type="time" class="pausa-fim" value="${r.fim}">
+            <button type="button" class="remove-interval remove-pausa">Remover</button>
+          </div>`
+              )
+              .join("")
+          : `<p class="form-hint">Nenhuma pausa configurada.</p>`;
+      }
+
+      function bindDayEvents(key) {
+        const dayEl = daysHolder.querySelector(`.day-config[data-day="${key}"]`);
+        const body = dayEl.querySelector(".day-config-body");
+        const toggleOpenBtn = dayEl.querySelector(".toggle-open");
+        const ativoInput = dayEl.querySelector(".toggle-ativo");
+
+        renderRanges(dayEl, key);
+        if (schedule[key].ativo) body.classList.add("open");
+
+        toggleOpenBtn.addEventListener("click", () => {
+          if (!schedule[key].ativo) return;
+          body.classList.toggle("open");
+        });
+
+        ativoInput.addEventListener("change", () => {
+          schedule[key].ativo = ativoInput.checked;
+          toggleOpenBtn.textContent = schedule[key].ativo ? "Editar horários ▾" : "";
+          body.classList.toggle("open", schedule[key].ativo);
+        });
+
+        dayEl.querySelector(".add-expediente").addEventListener("click", () => {
+          schedule[key].expediente.push({ inicio: "08:00", fim: "18:00" });
+          renderRanges(dayEl, key);
+          bindRangeInputs(dayEl, key);
+        });
+        dayEl.querySelector(".add-pausa").addEventListener("click", () => {
+          schedule[key].pausas.push({ inicio: "12:00", fim: "13:00" });
+          renderRanges(dayEl, key);
+          bindRangeInputs(dayEl, key);
+        });
+
+        bindRangeInputs(dayEl, key);
+      }
+
+      function bindRangeInputs(dayEl, key) {
+        dayEl.querySelectorAll(".expediente-rows .time-range-row").forEach((row) => {
+          const idx = Number(row.dataset.idx);
+          row.querySelector(".exp-inicio").addEventListener("change", (e) => (schedule[key].expediente[idx].inicio = e.target.value));
+          row.querySelector(".exp-fim").addEventListener("change", (e) => (schedule[key].expediente[idx].fim = e.target.value));
+          const rm = row.querySelector(".remove-exp");
+          if (rm) rm.addEventListener("click", () => {
+            schedule[key].expediente.splice(idx, 1);
+            renderRanges(dayEl, key);
+            bindRangeInputs(dayEl, key);
+          });
+        });
+        dayEl.querySelectorAll(".pausas-rows .time-range-row").forEach((row) => {
+          const idx = Number(row.dataset.idx);
+          row.querySelector(".pausa-inicio").addEventListener("change", (e) => (schedule[key].pausas[idx].inicio = e.target.value));
+          row.querySelector(".pausa-fim").addEventListener("change", (e) => (schedule[key].pausas[idx].fim = e.target.value));
+          row.querySelector(".remove-pausa").addEventListener("click", () => {
+            schedule[key].pausas.splice(idx, 1);
+            renderRanges(dayEl, key);
+            bindRangeInputs(dayEl, key);
+          });
+        });
+      }
+
+      // Renderiza na ordem seg→dom, mas usando as chaves reais
+      daysHolder.innerHTML = ORDER.map((key) => dayBlockHtml(key)).join("");
+      ORDER.forEach((key) => bindDayEvents(key));
+
+      document.getElementById("save-schedule").addEventListener("click", async () => {
+        // validação simples: início < fim em todos os intervalos
+        let valid = true;
+        Object.values(schedule).forEach((cfg) => {
+          [...cfg.expediente, ...cfg.pausas].forEach((r) => {
+            if (r.inicio >= r.fim) valid = false;
+          });
+        });
+        if (!valid) {
+          alert("Verifique os horários: o início deve ser antes do fim em todos os intervalos.");
+          return;
+        }
+        await DB.saveSchedule(schedule);
+        const fb = document.getElementById("save-feedback");
+        fb.textContent = "Horários salvos com sucesso ✓";
+        setTimeout(() => (fb.textContent = ""), 3000);
+      });
+    })();
+  </script>
+</body>
+</html>

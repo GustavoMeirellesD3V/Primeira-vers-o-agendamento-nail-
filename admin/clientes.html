@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Clientes — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Clientes", subtitle: "Histórico de clientes atendidas" });
+      if (!content) return;
+
+      const clients = await DB.getClients();
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header">
+            <h2>${clients.length} cliente(s)</h2>
+            <input type="text" id="search" placeholder="Buscar por nome..." style="padding:10px 14px;border-radius:var(--radius-full);border:1.5px solid var(--color-border);">
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="simple-table" id="clients-table">
+              <thead>
+                <tr><th>Nome</th><th>WhatsApp</th><th>Agendamentos</th><th>Último atendimento</th><th></th></tr>
+              </thead>
+              <tbody id="clients-body"></tbody>
+            </table>
+          </div>
+          <div id="empty-clients"></div>
+        </div>
+      `;
+
+      function renderRows(list) {
+        const body = document.getElementById("clients-body");
+        const empty = document.getElementById("empty-clients");
+        if (!list.length) {
+          body.innerHTML = "";
+          empty.innerHTML = `<div class="empty-hint">Nenhuma cliente encontrada.</div>`;
+          return;
+        }
+        empty.innerHTML = "";
+        body.innerHTML = list
+          .map(
+            (c) => `
+          <tr>
+            <td><strong>${c.nome}</strong></td>
+            <td>${c.whatsapp || "—"}</td>
+            <td>${c.totalAgendamentos}</td>
+            <td>${Admin.formatDateBR(c.ultimoAgendamento)}</td>
+            <td>${c.whatsapp ? `<a class="icon-btn" href="${Admin.waLink(c.whatsapp, 'Olá ' + c.nome + '!')}" target="_blank">💬</a>` : ""}</td>
+          </tr>`
+          )
+          .join("");
+      }
+
+      renderRows(clients);
+
+      document.getElementById("search").addEventListener("input", (e) => {
+        const term = e.target.value.toLowerCase();
+        renderRows(clients.filter((c) => c.nome.toLowerCase().includes(term)));
+      });
+    })();
+  </script>
+</body>
+</html>

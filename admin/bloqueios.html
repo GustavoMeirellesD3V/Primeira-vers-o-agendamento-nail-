@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dias Bloqueados — Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    (async () => {
+      const content = await Admin.buildShell({ title: "Dias Bloqueados", subtitle: "Feriados, folgas, viagens ou horários específicos indisponíveis" });
+      if (!content) return;
+
+      content.innerHTML = `
+        <div class="panel">
+          <div class="panel-header"><h2>Novo bloqueio</h2></div>
+          <form class="admin-form" id="block-form">
+            <div class="form-group">
+              <label>Data *</label>
+              <input type="date" id="b-data" required min="${DB.todayISO()}">
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+              <label class="switch"><input type="checkbox" id="b-diainteiro" checked><span class="slider"></span></label>
+              <label style="margin:0;">Bloquear o dia inteiro</label>
+            </div>
+            <div class="form-group" id="horarios-especificos" style="display:none;">
+              <label>Horários específicos a bloquear (separados por vírgula)</label>
+              <input type="text" id="b-horarios" placeholder="Ex: 14:00, 15:00, 16:00">
+              <p class="form-hint">Deixe em branco para não bloquear horários específicos.</p>
+            </div>
+            <div class="form-group">
+              <label>Motivo</label>
+              <input type="text" id="b-motivo" placeholder="Ex: Feriado, viagem, folga, compromisso pessoal...">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Bloquear</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Bloqueios cadastrados</h2></div>
+          <div id="block-list"></div>
+        </div>
+      `;
+
+      const diaInteiro = document.getElementById("b-diainteiro");
+      const horariosBox = document.getElementById("horarios-especificos");
+      diaInteiro.addEventListener("change", () => {
+        horariosBox.style.display = diaInteiro.checked ? "none" : "";
+      });
+
+      document.getElementById("block-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = document.getElementById("b-data").value;
+        const fullDay = diaInteiro.checked;
+        const horariosRaw = document.getElementById("b-horarios").value;
+        const horarios = fullDay
+          ? []
+          : horariosRaw.split(",").map((h) => h.trim()).filter(Boolean);
+        const motivo = document.getElementById("b-motivo").value.trim() || "Sem atendimento";
+
+        await DB.addBlockedDate({ date: data, fullDay, horarios, motivo });
+        e.target.reset();
+        diaInteiro.checked = true;
+        horariosBox.style.display = "none";
+        renderList();
+      });
+
+      async function renderList() {
+        const blocks = await DB.getBlockedDates();
+        const holder = document.getElementById("block-list");
+        if (!blocks.length) {
+          holder.innerHTML = `<div class="empty-hint">Nenhuma data bloqueada.</div>`;
+          return;
+        }
+        holder.innerHTML = blocks
+          .slice()
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map(
+            (b) => `
+          <div class="agenda-item">
+            <div class="info">
+              <strong>${Admin.formatDateBR(b.date)} — ${b.fullDay ? "Dia inteiro" : b.horarios.join(", ")}</strong>
+              <span>${b.motivo}</span>
+            </div>
+            <div class="actions">
+              <button class="icon-btn" data-remove="${b.id}" title="Remover">🗑️</button>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        holder.querySelectorAll("[data-remove]").forEach((btn) =>
+          btn.addEventListener("click", async () => {
+            if (confirm("Remover este bloqueio?")) {
+              await DB.removeBlockedDate(btn.dataset.remove);
+              renderList();
+            }
+          })
+        );
+      }
+
+      renderList();
+    })();
+  </script>
+</body>
+</html>

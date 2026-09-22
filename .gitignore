@@ -1,0 +1,17 @@
+# Dependências e builds (caso o projeto evolua para usar ferramentas de build)
+node_modules/
+dist/
+build/
+
+# Variáveis de ambiente e segredos reais (quando migrar para um backend real —
+# ver SECURITY.md — as chaves de API/serviço devem ficar SOMENTE aqui,
+# nunca em arquivos versionados como js/data.js)
+.env
+.env.local
+.env.*.local
+
+# Arquivos de sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

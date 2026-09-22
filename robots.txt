@@ -1,0 +1,12 @@
+# Evita que o Google e outros buscadores indexem/listem a área administrativa
+# e o "banco de dados" front-end nos resultados de busca.
+#
+# IMPORTANTE: isso NÃO bloqueia acesso direto de ninguém — apenas pede
+# educadamente para os robôs de busca não indexarem essas páginas. Qualquer
+# pessoa que souber (ou adivinhar) a URL /admin ou /js/data.js ainda consegue
+# acessá-las normalmente, porque este é um site 100% estático.
+
+User-agent: *
+Disallow: /admin/
+Disallow: /js/
+Disallow: /login.html
