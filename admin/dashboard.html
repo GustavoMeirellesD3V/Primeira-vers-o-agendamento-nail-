@@ -40,37 +40,56 @@
 
       const occupiedToday = activeToday.length;
       const faturamentoPrevisto = activeToday.reduce((sum, a) => sum + (serviceMap[a.serviceId]?.preco || 0), 0);
+      const confirmedToday = activeToday.filter((a) => a.status === "confirmado" || a.status === "concluido").length;
+      const confirmedPct = activeToday.length ? Math.round((confirmedToday / activeToday.length) * 100) : 0;
+
+      const ICON_CALENDAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+      const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+      const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      const ICON_MONEY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>';
+      const ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 
       content.innerHTML = `
         <div class="stat-grid">
-          <div class="stat-card">
-            <div class="ic">🗓️</div>
+          <div class="stat-card highlight">
+            <div class="stat-top"><div class="ic">${ICON_CALENDAR}</div>${activeToday.length ? `<span class="stat-trend">${confirmedPct}% confirmados</span>` : ""}</div>
             <div class="value">${activeToday.length}</div>
             <div class="label">Agendamentos hoje</div>
           </div>
           <div class="stat-card">
-            <div class="ic">⏭️</div>
+            <div class="stat-top"><div class="ic">${ICON_CLOCK}</div></div>
             <div class="value">${next ? next.horario : "—"}</div>
             <div class="label">Próximo atendimento</div>
           </div>
           <div class="stat-card">
-            <div class="ic">⏰</div>
+            <div class="stat-top"><div class="ic">${ICON_CHECK}</div></div>
             <div class="value">${occupiedToday}</div>
             <div class="label">Horários ocupados</div>
           </div>
           <div class="stat-card">
-            <div class="ic">💰</div>
+            <div class="stat-top"><div class="ic">${ICON_MONEY}</div></div>
             <div class="value">${Admin.formatCurrency(faturamentoPrevisto)}</div>
             <div class="label">Faturamento previsto</div>
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-header">
-            <h2>Agenda de hoje</h2>
-            <a href="agenda.html" class="btn btn-ghost btn-sm">Ver agenda completa →</a>
+        <div class="main-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Agenda de hoje</h2>
+              <a href="agenda.html" class="btn btn-ghost btn-sm">Ver agenda completa →</a>
+            </div>
+            <div id="today-list"></div>
           </div>
-          <div id="today-list"></div>
+
+          <div class="panel">
+            <div class="panel-header"><h2>Status de hoje</h2></div>
+            <div class="mini-donut" style="background:conic-gradient(var(--color-primary-dark) 0% ${confirmedPct}%, var(--color-primary-light) ${confirmedPct}% 100%);">
+              <span>${confirmedPct}%</span>
+            </div>
+            <div class="legend-row"><span class="legend-dot" style="background:var(--color-primary-dark);"></span>Confirmados</div>
+            <div class="legend-row"><span class="legend-dot" style="background:var(--color-primary-light);"></span>Pendentes / outros</div>
+          </div>
         </div>
       `;
 
@@ -84,12 +103,13 @@
             (a) => `
           <div class="agenda-item">
             <div class="time">${a.horario}</div>
+            <div class="bar"></div>
             <div class="info">
               <strong>${a.clienteNome}</strong>
               <span>${serviceMap[a.serviceId]?.nome || "Serviço removido"} · ${Admin.statusBadge(a.status)}</span>
             </div>
             <div class="actions">
-              <a class="icon-btn" href="agendamentos.html?id=${a.id}" title="Ver detalhes">👁️</a>
+              <a class="icon-btn" href="agendamentos.html?id=${a.id}" title="Ver detalhes">${ICON_EYE}</a>
             </div>
           </div>`
           )
