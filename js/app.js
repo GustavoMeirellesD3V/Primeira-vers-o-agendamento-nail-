@@ -70,7 +70,11 @@
      Usa as fotos cadastradas manualmente em Configurações > Galeria do hero.
      Se a galeria estiver vazia, cai para a foto de destaque única (compatibilidade
      com sites antigos); se não houver nenhuma, mostra o placeholder. */
-  function buildHeroGallery(container, settings) {
+  function buildHeroGallery(wrap, settings) {
+    const photoBox = wrap.querySelector(".hero-photo") || wrap;
+    const oldControls = wrap.querySelector(".hero-photo-controls");
+    if (oldControls) oldControls.remove();
+
     let photos =
       Array.isArray(settings.fotosDestaque) && settings.fotosDestaque.length
         ? settings.fotosDestaque.map((src) => ({ src, alt: settings.nome }))
@@ -79,35 +83,39 @@
         : [];
 
     if (!photos.length) {
-      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:var(--font-display);font-size:1rem;color:var(--color-text-soft);">Foto de destaque</div>`;
+      photoBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:var(--font-display);font-size:1rem;color:var(--color-text-soft);">Foto de destaque</div>`;
       return;
     }
 
     let idx = 0;
-    container.innerHTML = `
+    photoBox.innerHTML = `
       <div class="hero-photo-track" id="hero-photo-track">
         ${photos.map((p) => `<div class="hero-photo-slide"><img src="${p.src}" alt="${p.alt}"></div>`).join("")}
       </div>
-      ${
-        photos.length > 1
-          ? `
-        <button type="button" class="hero-photo-arrow prev" id="hero-photo-prev" aria-label="Arte anterior">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <button type="button" class="hero-photo-arrow next" id="hero-photo-next" aria-label="Próxima arte">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-        <div class="hero-photo-dots" id="hero-photo-dots">
-          ${photos.map((_, i) => `<span class="hero-photo-dot${i === 0 ? " active" : ""}" data-i="${i}"></span>`).join("")}
-        </div>`
-          : ""
-      }
     `;
 
     if (photos.length <= 1) return;
 
+    // seta/bolinhas ficam FORA da imagem, numa barrinha logo abaixo
+    wrap.insertAdjacentHTML(
+      "beforeend",
+      `
+      <div class="hero-photo-controls" id="hero-photo-controls">
+        <button type="button" class="hero-photo-arrow prev" id="hero-photo-prev" aria-label="Arte anterior">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="hero-photo-dots" id="hero-photo-dots">
+          ${photos.map((_, i) => `<span class="hero-photo-dot${i === 0 ? " active" : ""}" data-i="${i}"></span>`).join("")}
+        </div>
+        <button type="button" class="hero-photo-arrow next" id="hero-photo-next" aria-label="Próxima arte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    `
+    );
+
     const track = document.getElementById("hero-photo-track");
-    const dots = Array.from(container.querySelectorAll(".hero-photo-dot"));
+    const dots = Array.from(wrap.querySelectorAll(".hero-photo-dot"));
 
     function goTo(i) {
       idx = (i + photos.length) % photos.length;
@@ -121,8 +129,8 @@
 
     // troca automática suave a cada 5s, pausando quando o mouse está em cima
     let timer = setInterval(() => goTo(idx + 1), 5000);
-    container.addEventListener("mouseenter", () => clearInterval(timer));
-    container.addEventListener("mouseleave", () => {
+    wrap.addEventListener("mouseenter", () => clearInterval(timer));
+    wrap.addEventListener("mouseleave", () => {
       timer = setInterval(() => goTo(idx + 1), 5000);
     });
   }
