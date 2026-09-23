@@ -213,6 +213,35 @@
       return mapSettingsFromDb(data);
     },
 
+    /* ---------- UPLOAD DE IMAGENS (Supabase Storage) ----------
+       Antes as fotos (destaque, logo, galeria) eram salvas como texto
+       base64 direto na linha de "settings", o que deixava a linha muito
+       pesada e fazia qualquer salvamento (até de um texto simples)
+       começar a falhar silenciosamente depois de algumas fotos.
+       Agora o arquivo vai para o bucket "site-images" do Storage e só
+       a URL pública (bem leve) é guardada no banco. ---------- */
+    async uploadImage(file, folder = "geral") {
+      assertConfigured();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await sb.storage.from("site-images").upload(path, file, { upsert: false, cacheControl: "3600" });
+      if (error) throw error;
+      const { data } = sb.storage.from("site-images").getPublicUrl(path);
+      return data.publicUrl;
+    },
+    async deleteImage(url) {
+      // Best-effort: se não conseguir remover do Storage, não trava o fluxo do usuário.
+      try {
+        const marker = "/object/public/site-images/";
+        const idx = (url || "").indexOf(marker);
+        if (idx === -1) return;
+        const path = decodeURIComponent(url.slice(idx + marker.length));
+        await sb.storage.from("site-images").remove([path]);
+      } catch (e) {
+        /* ignora erro de limpeza */
+      }
+    },
+
     /* ---------- HORÁRIOS DE FUNCIONAMENTO ---------- */
     async getSchedule() {
       assertConfigured();

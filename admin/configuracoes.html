@@ -138,15 +138,6 @@
         setTimeout(() => (fb.textContent = ""), 2500);
       }
 
-      function fileToDataUrl(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
-
       /* ---------- GALERIA DO HERO ---------- */
       let fotosDestaque = Array.isArray(settings.fotosDestaque) ? settings.fotosDestaque.slice() : [];
       const galleryGrid = document.getElementById("gallery-grid");
@@ -173,10 +164,15 @@
           .join("");
         galleryGrid.querySelectorAll(".gallery-remove").forEach((btn) => {
           btn.addEventListener("click", async () => {
-            fotosDestaque.splice(Number(btn.dataset.i), 1);
+            const [removedUrl] = fotosDestaque.splice(Number(btn.dataset.i), 1);
             renderGallery();
-            await DB.saveSettings({ fotosDestaque });
-            showGalleryFeedback("Foto removida ✓");
+            try {
+              await DB.saveSettings({ fotosDestaque });
+              await DB.deleteImage(removedUrl);
+              showGalleryFeedback("Foto removida ✓");
+            } catch (err) {
+              showGalleryFeedback("Não foi possível remover. Tente novamente.");
+            }
           });
         });
       }
@@ -185,12 +181,21 @@
       document.getElementById("gallery-file").addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const dataUrl = await fileToDataUrl(file);
-        fotosDestaque.push(dataUrl);
-        renderGallery();
-        await DB.saveSettings({ fotosDestaque });
-        showGalleryFeedback("Foto adicionada ✓");
-        e.target.value = "";
+        const input = e.target;
+        input.disabled = true;
+        showGalleryFeedback("Enviando foto...");
+        try {
+          const url = await DB.uploadImage(file, "galeria");
+          fotosDestaque.push(url);
+          await DB.saveSettings({ fotosDestaque });
+          renderGallery();
+          showGalleryFeedback("Foto adicionada ✓");
+        } catch (err) {
+          showGalleryFeedback("Não foi possível enviar essa foto. Tente novamente.");
+        } finally {
+          input.disabled = false;
+          input.value = "";
+        }
       });
 
       document.getElementById("form-dados").addEventListener("submit", async (e) => {
@@ -205,11 +210,21 @@
         };
         const fotoFile = document.getElementById("s-foto-file").files[0];
         const logoFile = document.getElementById("s-logo-file").files[0];
-        if (fotoFile) patch.foto = await fileToDataUrl(fotoFile);
-        if (logoFile) patch.logo = await fileToDataUrl(logoFile);
+        const submitBtn = e.target.querySelector('button[type="submit"]');
 
-        await DB.saveSettings(patch);
-        showFeedback("Dados salvos com sucesso ✓");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Salvando...";
+        try {
+          if (fotoFile) patch.foto = await DB.uploadImage(fotoFile, "destaque");
+          if (logoFile) patch.logo = await DB.uploadImage(logoFile, "logo");
+          await DB.saveSettings(patch);
+          showFeedback("Dados salvos com sucesso ✓");
+        } catch (err) {
+          showFeedback("Não foi possível salvar. Tente novamente em instantes.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Salvar dados";
+        }
       });
 
       document.getElementById("save-colors").addEventListener("click", async () => {
