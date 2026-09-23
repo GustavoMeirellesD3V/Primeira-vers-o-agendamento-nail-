@@ -449,3 +449,64 @@ table.simple-table th {
   color: var(--color-text-soft); padding: 8px 6px; border-bottom: 2px solid var(--color-border);
 }
 table.simple-table td { padding: 12px 6px; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; }
+
+/* ---------- MICRO-ANIMAÇÕES EM BOTÕES ---------- */
+.icon-btn { transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+.icon-btn:hover { transform: translateY(-2px) scale(1.06); box-shadow: var(--shadow-soft); background: var(--color-primary-light); border-color: var(--color-primary); }
+.icon-btn:active { transform: translateY(0) scale(0.94); }
+.icon-btn svg { transition: transform 0.25s ease; }
+.icon-btn:hover svg { transform: scale(1.12); }
+
+.admin-nav a { transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease; }
+.admin-nav a:hover { transform: translateX(3px); }
+.admin-nav a .ic svg { transition: transform 0.25s ease; }
+.admin-nav a:hover .ic svg { transform: scale(1.15); }
+.admin-nav a.active::after { animation: nav-bar-in 0.3s ease; }
+@keyframes nav-bar-in { from { height: 0; opacity: 0; } to { height: 18px; opacity: 1; } }
+
+.admin-sidebar .logout-btn { transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease; }
+.admin-sidebar .logout-btn:hover { transform: translateX(3px); }
+.admin-sidebar .logout-btn .ic svg { transition: transform 0.25s ease; }
+.admin-sidebar .logout-btn:hover .ic svg { transform: rotate(-10deg) scale(1.1); }
+
+.topbar-bell { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
+.topbar-bell:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(169,106,126,.45); }
+.topbar-bell .dot { animation: bell-pulse 2s ease-in-out infinite; }
+@keyframes bell-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(169,106,126,.55); }
+  50% { box-shadow: 0 0 0 4px rgba(169,106,126,0); }
+}
+
+.switch .slider::before { transition: transform 0.25s cubic-bezier(.4,0,.2,1), box-shadow 0.2s ease; }
+.switch input:checked + .slider::before { box-shadow: 0 2px 8px rgba(111,156,125,.5); }
+
+.color-swatch { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.color-swatch:hover { transform: scale(1.14); box-shadow: var(--shadow-elevated); }
+.color-swatch.selected { animation: swatch-pop 0.3s ease; }
+@keyframes swatch-pop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.16); }
+  100% { transform: scale(1.08); }
+}
+
+.view-tabs button { transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease; }
+.view-tabs button:hover:not(.active) { color: var(--color-primary-dark); }
+.view-tabs button.active { animation: tab-pop 0.25s ease; }
+@keyframes tab-pop { from { transform: scale(0.92); } to { transform: scale(1); } }
+
+.modal-close { transition: transform 0.2s ease, color 0.2s ease; }
+.modal-close:hover { transform: rotate(90deg); color: var(--color-danger); }
+
+.add-interval-btn, .remove-interval { transition: transform 0.2s ease, color 0.2s ease; }
+.add-interval-btn:hover { transform: translateX(3px); }
+.remove-interval:hover { transform: scale(1.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn, .icon-btn svg, .admin-nav a, .admin-nav a .ic svg, .admin-sidebar .logout-btn,
+  .admin-sidebar .logout-btn .ic svg, .topbar-bell, .topbar-bell .dot, .switch .slider::before,
+  .color-swatch, .color-swatch.selected, .view-tabs button, .view-tabs button.active,
+  .modal-close, .add-interval-btn, .remove-interval {
+    animation: none !important;
+    transition: none !important;
+  }
+}
