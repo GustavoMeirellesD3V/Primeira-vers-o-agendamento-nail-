@@ -41,40 +41,42 @@
       (el) => (el.href = `https://instagram.com/${settings.instagram.replace("@", "")}`)
     );
 
-    // Serviços ativos — usados tanto na prévia da home quanto na galeria do hero
+    // Galeria de fotos do hero (cadastrada manualmente em Configurações)
     const heroPhotoEl = document.querySelector("[data-bind='foto']");
+    if (heroPhotoEl) buildHeroGallery(heroPhotoEl, settings);
+
+    // Renderiza serviços em destaque na home
     const previewWrap = document.getElementById("services-preview");
-    if (heroPhotoEl || previewWrap) {
+    if (previewWrap) {
       const services = await DB.getServices({ onlyActive: true });
-
-      if (previewWrap) {
-        previewWrap.innerHTML = services
-          .slice(0, 4)
-          .map(
-            (s) => `
-          <div class="service-card">
-            <div class="thumb">${s.imagem ? `<img src="${s.imagem}" alt="${s.nome}">` : "💅"}</div>
-            <div class="info">
-              <h3>${s.nome}</h3>
-              <div class="meta"><span>⏱ ${s.duracaoMin} min</span></div>
-            </div>
-            <div class="price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div>
-          </div>`
-          )
-          .join("");
-      }
-
-      if (heroPhotoEl) buildHeroGallery(heroPhotoEl, settings, services);
+      previewWrap.innerHTML = services
+        .slice(0, 4)
+        .map(
+          (s) => `
+        <div class="service-card">
+          <div class="thumb">${s.imagem ? `<img src="${s.imagem}" alt="${s.nome}">` : "💅"}</div>
+          <div class="info">
+            <h3>${s.nome}</h3>
+            <div class="meta"><span>⏱ ${s.duracaoMin} min</span></div>
+          </div>
+          <div class="price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div>
+        </div>`
+        )
+        .join("");
     }
   });
 
   /* ---------- GALERIA DE FOTOS DO HERO (com setas) ----------
-     Usa as fotos dos serviços ativos como "artes" para navegar.
-     Se nenhum serviço tiver foto, cai para a foto de destaque única
-     configurada em Configurações; se não houver nenhuma, mostra o placeholder. */
-  function buildHeroGallery(container, settings, services) {
-    let photos = services.filter((s) => s.imagem).map((s) => ({ src: s.imagem, alt: s.nome }));
-    if (!photos.length && settings.foto) photos = [{ src: settings.foto, alt: settings.nome }];
+     Usa as fotos cadastradas manualmente em Configurações > Galeria do hero.
+     Se a galeria estiver vazia, cai para a foto de destaque única (compatibilidade
+     com sites antigos); se não houver nenhuma, mostra o placeholder. */
+  function buildHeroGallery(container, settings) {
+    let photos =
+      Array.isArray(settings.fotosDestaque) && settings.fotosDestaque.length
+        ? settings.fotosDestaque.map((src) => ({ src, alt: settings.nome }))
+        : settings.foto
+        ? [{ src: settings.foto, alt: settings.nome }]
+        : [];
 
     if (!photos.length) {
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:var(--font-display);font-size:1rem;color:var(--color-text-soft);">Foto de destaque</div>`;

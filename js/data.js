@@ -103,6 +103,7 @@
       subtitulo: row.subtitulo,
       descricao: row.descricao,
       foto: row.foto,
+      fotosDestaque: row.fotos_destaque || [],
       logo: row.logo,
       whatsapp: row.whatsapp,
       instagram: row.instagram,
@@ -119,6 +120,7 @@
     if (obj.subtitulo !== undefined) out.subtitulo = obj.subtitulo;
     if (obj.descricao !== undefined) out.descricao = obj.descricao;
     if (obj.foto !== undefined) out.foto = obj.foto;
+    if (obj.fotosDestaque !== undefined) out.fotos_destaque = obj.fotosDestaque;
     if (obj.logo !== undefined) out.logo = obj.logo;
     if (obj.whatsapp !== undefined) out.whatsapp = obj.whatsapp;
     if (obj.instagram !== undefined) out.instagram = obj.instagram;

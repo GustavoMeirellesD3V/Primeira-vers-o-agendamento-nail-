@@ -46,7 +46,7 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label>Foto de destaque</label>
+                <label>Foto de destaque (reserva, se a galeria abaixo estiver vazia)</label>
                 <input type="file" id="s-foto-file" accept="image/*">
               </div>
               <div class="form-group">
@@ -56,6 +56,17 @@
             </div>
             <button type="submit" class="btn btn-primary btn-block">Salvar dados</button>
           </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Galeria do hero</h2></div>
+          <p class="form-hint" style="margin-bottom:12px;">Adicione as artes que você quer mostrar na foto principal da home. Elas aparecem com setas para o visitante navegar entre elas.</p>
+          <div class="gallery-grid" id="gallery-grid"></div>
+          <label class="btn btn-outline btn-block" style="margin-top:12px;cursor:pointer;">
+            + Adicionar foto
+            <input type="file" id="gallery-file" accept="image/*" style="display:none;">
+          </label>
+          <p class="form-hint" id="gallery-feedback" style="text-align:center;margin-top:8px;"></p>
         </div>
 
         <div class="panel">
@@ -135,6 +146,52 @@
           reader.readAsDataURL(file);
         });
       }
+
+      /* ---------- GALERIA DO HERO ---------- */
+      let fotosDestaque = Array.isArray(settings.fotosDestaque) ? settings.fotosDestaque.slice() : [];
+      const galleryGrid = document.getElementById("gallery-grid");
+      const galleryFeedback = document.getElementById("gallery-feedback");
+
+      function showGalleryFeedback(msg) {
+        galleryFeedback.textContent = msg;
+        setTimeout(() => (galleryFeedback.textContent = ""), 2500);
+      }
+
+      function renderGallery() {
+        if (!fotosDestaque.length) {
+          galleryGrid.innerHTML = `<div class="empty-hint">Nenhuma foto adicionada ainda.</div>`;
+          return;
+        }
+        galleryGrid.innerHTML = fotosDestaque
+          .map(
+            (src, i) => `
+          <div class="gallery-thumb">
+            <img src="${src}" alt="Foto ${i + 1} da galeria">
+            <button type="button" class="gallery-remove" data-i="${i}" title="Remover">✕</button>
+          </div>`
+          )
+          .join("");
+        galleryGrid.querySelectorAll(".gallery-remove").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            fotosDestaque.splice(Number(btn.dataset.i), 1);
+            renderGallery();
+            await DB.saveSettings({ fotosDestaque });
+            showGalleryFeedback("Foto removida ✓");
+          });
+        });
+      }
+      renderGallery();
+
+      document.getElementById("gallery-file").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const dataUrl = await fileToDataUrl(file);
+        fotosDestaque.push(dataUrl);
+        renderGallery();
+        await DB.saveSettings({ fotosDestaque });
+        showGalleryFeedback("Foto adicionada ✓");
+        e.target.value = "";
+      });
 
       document.getElementById("form-dados").addEventListener("submit", async (e) => {
         e.preventDefault();
