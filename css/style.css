@@ -585,31 +585,158 @@ section { padding: var(--space-xl) 0; }
 .social-btn svg { width: 20px; height: 20px; }
 .social-btn:hover { transform: translateY(-3px); box-shadow: var(--shadow-glow); color: var(--color-primary-dark); }
 
-/* ---------- RODAPÉ ---------- */
+/* ---------- RODAPÉ (visual "tech", fundo escuro) ---------- */
 footer {
   position: relative;
   text-align: center;
-  padding: var(--space-xl) var(--space-md) var(--space-lg);
-  color: var(--color-text-soft);
+  padding: var(--space-2xl) var(--space-md) var(--space-lg);
+  color: var(--color-ink-soft);
   font-size: 0.8rem;
-  background: linear-gradient(180deg, transparent, var(--color-primary-light) 200%);
+  background: var(--color-ink);
+  overflow: hidden;
+  isolation: isolate;
 }
-footer::before {
-  content: "";
-  display: block;
-  width: 40px;
-  height: 2px;
-  background: var(--color-gold);
-  margin: 0 auto var(--space-lg);
-  border-radius: var(--radius-full);
+
+.footer-decor { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.footer-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 75%);
+}
+.footer-glow { position: absolute; border-radius: 50%; filter: blur(60px); animation: float-blob 16s ease-in-out infinite; }
+.footer-glow.g1 { width: 240px; height: 240px; background: var(--color-primary); opacity: 0.3; top: -90px; right: -60px; }
+.footer-glow.g2 { width: 200px; height: 200px; background: var(--color-gold); opacity: 0.18; bottom: 0; left: -80px; animation-delay: -6s; }
+
+.footer-inner { position: relative; z-index: 1; max-width: 420px; margin: 0 auto; }
+
+.footer-brand-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(111, 156, 125, 0.25);
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 footer .brand {
   font-family: var(--font-display);
   font-size: 1.2rem;
-  color: var(--color-primary-dark);
-  margin-bottom: 4px;
+  color: #fff;
+  margin-bottom: 0;
 }
-footer p a { text-decoration: underline; text-underline-offset: 2px; }
+.footer-tagline { color: var(--color-ink-soft); font-size: 0.82rem; max-width: 280px; margin: 0 auto var(--space-lg); }
+
+/* card do CTA com borda em degradê animada */
+.footer-cta {
+  border-radius: var(--radius-md);
+  padding: 2px;
+  background: linear-gradient(120deg, var(--color-primary), var(--color-gold), var(--color-primary));
+  background-size: 200% 200%;
+  animation: border-flow 5s ease infinite;
+  margin-bottom: var(--space-lg);
+}
+@keyframes border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.footer-cta-inner {
+  background: var(--color-ink);
+  border-radius: calc(var(--radius-md) - 2px);
+  padding: var(--space-md);
+}
+.footer-cta-inner p { color: #fff; font-weight: 700; font-size: 0.85rem; margin: 0 0 var(--space-sm); }
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 13px 26px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 10px 24px -10px rgba(201, 140, 160, 0.6);
+}
+.btn-shine svg { width: 15px; height: 15px; position: relative; z-index: 1; }
+.btn-shine span { position: relative; z-index: 1; }
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: shine 2.6s ease-in-out infinite;
+}
+@keyframes shine {
+  0% { left: -60%; }
+  45% { left: 130%; }
+  100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-glow, .footer-cta, .btn-shine::after, .status-dot, .footer-social-row .social-btn { animation: none; }
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+  font-size: 0.78rem;
+  margin-bottom: var(--space-lg);
+}
+.footer-links a { color: var(--color-ink-soft); position: relative; }
+.footer-links a::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: -4px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.6;
+}
+
+/* ícones sociais do rodapé com anel pulsante + borda em degradê */
+.footer-social-row { margin-bottom: var(--space-lg); }
+.footer-social-row .social-btn {
+  position: relative;
+  width: 44px; height: 44px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 0 rgba(201, 140, 160, 0.35);
+  animation: ring-pulse 3s ease-in-out infinite;
+}
+.footer-social-row .social-btn:nth-child(2) { animation-delay: 0.6s; }
+.footer-social-row .social-btn svg { color: #fff; }
+.footer-social-row .social-btn::before {
+  content: "";
+  position: absolute; inset: -1px;
+  border-radius: 50%;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-gold));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+}
+.footer-social-row .social-btn:hover { transform: translateY(-3px); box-shadow: 0 0 0 0 rgba(201, 140, 160, 0.35); }
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 140, 160, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(201, 140, 160, 0); }
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: var(--space-md);
+  font-size: 0.72rem;
+}
+.footer-bottom p a { text-decoration: underline; text-underline-offset: 2px; color: var(--color-ink-soft); }
 
 /* ---------- BOTÃO FLUTUANTE DE AGENDAR (mobile) ---------- */
 .floating-cta {
