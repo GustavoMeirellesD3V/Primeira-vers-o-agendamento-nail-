@@ -38,18 +38,16 @@
         <a href="#" id="forgot-link">Esqueci minha senha</a>
       </div>
 
-      <!-- ETAPA 2: código de 6 dígitos enviado por e-mail -->
-      <form id="code-form" style="display:none;">
-        <div class="form-group">
-          <label for="code">Código de verificação</label>
-          <input type="text" id="code" name="code" placeholder="000000" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required style="text-align:center;letter-spacing:6px;font-size:1.3rem;font-weight:700;">
-          <p class="form-hint" style="margin-top:8px;">Confira sua caixa de entrada (e o spam) — enviamos um código para <strong id="code-email"></strong>.</p>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="verify-btn">Confirmar código</button>
-      </form>
+      <!-- ETAPA 2: aguardando clique no link de confirmação enviado por e-mail -->
+      <div id="waiting-block" style="display:none;text-align:center;">
+        <div class="login-waiting-icon" aria-hidden="true" style="font-size:2.4rem;margin-bottom:12px;">✉️</div>
+        <p class="form-hint" style="margin:0 0 4px;">Enviamos um e-mail de confirmação para</p>
+        <p style="font-weight:700;margin:0 0 16px;" id="waiting-email"></p>
+        <p class="form-hint">Abra seu e-mail <strong>neste mesmo aparelho</strong> e clique no link para concluir o login. Esta página atualiza sozinha assim que você clicar.</p>
+      </div>
 
       <div class="login-footer-link" id="resend-wrap" style="display:none;">
-        <a href="#" id="resend-link">Reenviar código</a>
+        <a href="#" id="resend-link">Reenviar e-mail</a>
         &nbsp;·&nbsp;
         <a href="#" id="back-link">Usar outro e-mail</a>
       </div>
@@ -73,16 +71,30 @@
 
       const subtitle = document.getElementById('login-subtitle');
       const form = document.getElementById('login-form');
-      const codeForm = document.getElementById('code-form');
+      const waitingBlock = document.getElementById('waiting-block');
       const forgotWrap = document.getElementById('forgot-wrap');
       const resendWrap = document.getElementById('resend-wrap');
       const errorBox = document.getElementById('login-error');
       const infoBox = document.getElementById('login-info');
       const submitBtn = document.getElementById('submit-btn');
-      const verifyBtn = document.getElementById('verify-btn');
-      const codeEmailLabel = document.getElementById('code-email');
+      const waitingEmailLabel = document.getElementById('waiting-email');
 
       let pendingEmail = '';
+      let pollTimer = null;
+
+      function startPolling() {
+        stopPolling();
+        pollTimer = setInterval(async () => {
+          const session = await DB.getSession();
+          if (session) {
+            stopPolling();
+            window.location.href = 'admin/dashboard.html';
+          }
+        }, 3000);
+      }
+      function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -95,14 +107,14 @@
           await DB.loginPassword(email, form.password.value);
           pendingEmail = email;
 
-          // troca para a etapa 2 (código por e-mail)
+          // troca para a etapa 2 (aguardando clique no link do e-mail)
           form.style.display = 'none';
           forgotWrap.style.display = 'none';
-          codeForm.style.display = '';
+          waitingBlock.style.display = '';
           resendWrap.style.display = '';
-          codeEmailLabel.textContent = email;
-          subtitle.textContent = 'Digite o código que enviamos para o seu e-mail';
-          document.getElementById('code').focus();
+          waitingEmailLabel.textContent = email;
+          subtitle.textContent = 'Confirme sua identidade por e-mail';
+          startPolling();
         } catch (err) {
           errorBox.textContent = err.message;
           errorBox.classList.add('show');
@@ -112,29 +124,12 @@
         }
       });
 
-      codeForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorBox.classList.remove('show');
-        infoBox.classList.remove('show');
-        verifyBtn.disabled = true;
-        verifyBtn.textContent = 'Confirmando...';
-        try {
-          await DB.loginVerifyCode(pendingEmail, document.getElementById('code').value.trim());
-          window.location.href = 'admin/dashboard.html';
-        } catch (err) {
-          errorBox.textContent = err.message;
-          errorBox.classList.add('show');
-          verifyBtn.disabled = false;
-          verifyBtn.textContent = 'Confirmar código';
-        }
-      });
-
       document.getElementById('resend-link').addEventListener('click', async (e) => {
         e.preventDefault();
         errorBox.classList.remove('show');
         try {
-          await DB.resendLoginCode(pendingEmail);
-          infoBox.textContent = 'Reenviamos o código para o seu e-mail.';
+          await DB.resendLoginLink(pendingEmail);
+          infoBox.textContent = 'Reenviamos o e-mail de confirmação.';
           infoBox.classList.add('show');
         } catch (err) {
           errorBox.textContent = err.message;
@@ -144,9 +139,10 @@
 
       document.getElementById('back-link').addEventListener('click', (e) => {
         e.preventDefault();
+        stopPolling();
         errorBox.classList.remove('show');
         infoBox.classList.remove('show');
-        codeForm.style.display = 'none';
+        waitingBlock.style.display = 'none';
         resendWrap.style.display = 'none';
         form.style.display = '';
         forgotWrap.style.display = '';

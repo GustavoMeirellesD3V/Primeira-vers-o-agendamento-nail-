@@ -432,38 +432,45 @@
       return slots;
     },
 
-    /* ---------- AUTENTICAÇÃO ADMIN (Supabase Auth + código por e-mail) ----------
+    /* ---------- AUTENTICAÇÃO ADMIN (Supabase Auth + link de confirmação por e-mail) ----------
        Login em 2 etapas:
        1) loginPassword() confere e-mail/senha. Se estiver certo, NÃO deixa a
-          sessão aberta ainda — encerra ela e dispara um código de 6 dígitos
-          por e-mail (via sb.auth.signInWithOtp).
-       2) loginVerifyCode() confere o código digitado e, só então, cria a
-          sessão de verdade (via sb.auth.verifyOtp). É esse o "segundo fator".
+          sessão aberta ainda — encerra ela e dispara um e-mail de confirmação
+          (via sb.auth.signInWithOtp) com um link único, de uso único, que
+          expira em pouco tempo.
+       2) A cliente (você) clica nesse link, que abre diretamente
+          admin/dashboard.html já autenticada — é esse clique que faz o
+          papel de "segundo fator". Não existe uma etapa de "digitar código"
+          porque o Supabase, no plano gratuito/sem SMTP próprio, só permite
+          enviar o template padrão (com link), não um código numérico.
     ---------------------------------------------------------------------- */
     async loginPassword(email, password) {
       assertConfigured();
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error("E-mail ou senha inválidos.");
-      // derruba a sessão da senha — só o código por e-mail deve autenticar de fato
+      // derruba a sessão da senha — só o clique no link do e-mail deve autenticar de fato
       await sb.auth.signOut();
       const { error: otpError } = await sb.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: false },
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/admin/dashboard.html`,
+        },
       });
-      if (otpError) throw new Error("Não foi possível enviar o código por e-mail. Tente novamente em instantes.");
+      if (otpError) throw new Error("Não foi possível enviar o e-mail de confirmação. Tente novamente em instantes.");
       return true;
     },
-    async resendLoginCode(email) {
+    async resendLoginLink(email) {
       assertConfigured();
-      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-      if (error) throw new Error("Não foi possível reenviar o código.");
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/admin/dashboard.html`,
+        },
+      });
+      if (error) throw new Error("Não foi possível reenviar o e-mail.");
       return true;
-    },
-    async loginVerifyCode(email, code) {
-      assertConfigured();
-      const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: "email" });
-      if (error) throw new Error("Código inválido ou expirado. Confira e tente de novo.");
-      return { token: data.session.access_token, email: data.user.email };
     },
     async logout() {
       if (!sb) return;
