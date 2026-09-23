@@ -102,9 +102,10 @@
 
         if (state.view === "mes") {
           nav.innerHTML = "";
+          const lastDayOfMonth = new Date(state.calYear, state.calMonth + 1, 0).getDate();
           const monthAppts = await DB.getAppointments({
             dateFrom: `${state.calYear}-${String(state.calMonth + 1).padStart(2, "0")}-01`,
-            dateTo: `${state.calYear}-${String(state.calMonth + 1).padStart(2, "0")}-31`,
+            dateTo: `${state.calYear}-${String(state.calMonth + 1).padStart(2, "0")}-${String(lastDayOfMonth).padStart(2, "0")}`,
           });
           const countByDay = {};
           monthAppts.forEach((a) => {
