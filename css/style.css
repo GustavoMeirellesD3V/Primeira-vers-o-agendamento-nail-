@@ -783,8 +783,9 @@ footer .brand {
 }
 .footer-bottom p a { text-decoration: underline; text-underline-offset: 2px; color: var(--color-ink-soft); }
 
-/* ---------- BOTÃO FLUTUANTE DE AGENDAR (mobile) ---------- */
+/* ---------- BOTÃO FLUTUANTE DE AGENDAR (removido no celular a pedido — atrapalhava a leitura) ---------- */
 .floating-cta {
+  display: none;
   position: fixed;
   left: var(--space-md);
   right: var(--space-md);
