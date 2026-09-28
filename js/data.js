@@ -1,337 +1,498 @@
-/**
- * data.js
- * ------------------------------------------------------------------
- * Camada de dados do sistema. Toda a aplicação (público + admin) fala
- * APENAS com o objeto `DataStore`, nunca direto com o supabaseClient.
- *
- * Isso mantém o resto do código (app.js, agendamento.js, admin.js...)
- * isolado de detalhes do banco: se um dia trocarmos de provedor, só
- * este arquivo muda.
- *
- * Backend: Supabase (Postgres + Auth), projeto cariocaeglow-nail-agenda,
- * região sa-east-1 (São Paulo). As regras de quem pode ler/escrever
- * cada tabela vivem no banco (Row Level Security), não aqui — este
- * arquivo só faz as chamadas; o Supabase que aceita ou recusa.
- * ------------------------------------------------------------------ */
+/* =========================================================
+   NAIL STUDIO — data.js
+   ---------------------------------------------------------
+   Camada de acesso a dados, agora ligada a um banco real
+   (Supabase / Postgres) com autenticação de verdade.
 
-function mapService(row) {
-  if (!row) return null;
-  return {
-    id: row.id,
-    nome: row.nome,
-    descricao: row.descricao,
-    duracaoMin: row.duracao_min,
-    preco: Number(row.preco),
-    ativo: row.ativo,
-    imagem: row.imagem_url || ''
+   Nenhuma outra tela do sistema fala diretamente com o banco —
+   todas chamam DB.getServices(), DB.createAppointment() etc.
+   Por isso esta reescrita não exigiu tocar em agendamento.js,
+   app.js, calendario.js nem nas páginas de /admin: a "forma"
+   dos dados que este arquivo devolve continua igual à versão
+   anterior (localStorage), só a fonte mudou.
+
+   Pré-requisitos:
+   1) Rodar supabase/schema.sql no SQL Editor do seu projeto.
+   2) Criar o usuário admin em Authentication > Users.
+   3) Preencher js/supabase-config.js com a URL e a anon key.
+   4) Incluir, em toda página HTML, ANTES deste arquivo:
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      <script src="js/supabase-config.js"></script>
+   ========================================================= */
+
+(function (global) {
+  const WEEKDAY_KEYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+  const WEEKDAY_LABELS = {
+    seg: "Segunda-feira",
+    ter: "Terça-feira",
+    qua: "Quarta-feira",
+    qui: "Quinta-feira",
+    sex: "Sexta-feira",
+    sab: "Sábado",
+    dom: "Domingo",
   };
-}
 
-function serviceToRow(service) {
-  return {
-    nome: service.nome,
-    descricao: service.descricao || null,
-    duracao_min: service.duracaoMin,
-    preco: service.preco,
-    ativo: service.ativo,
-    imagem_url: service.imagem || null
-  };
-}
+  /* ---------------------------------------------------------
+     CLIENTE SUPABASE
+  --------------------------------------------------------- */
+  const CONFIGURED =
+    typeof SUPABASE_URL !== "undefined" &&
+    typeof SUPABASE_ANON_KEY !== "undefined" &&
+    SUPABASE_URL &&
+    SUPABASE_ANON_KEY &&
+    !SUPABASE_URL.includes("SEU-PROJETO");
 
-function mapSettings(row) {
-  if (!row) return {};
-  return {
-    nomeProfissional: row.nome_profissional,
-    subtitulo: row.subtitulo,
-    descricaoCurta: row.descricao_curta,
-    sobreMim: row.sobre_mim,
-    whatsapp: row.whatsapp,
-    instagram: row.instagram,
-    endereco: row.endereco,
-    corPrimaria: row.cor_primaria,
-    corSecundaria: row.cor_secundaria,
-    mensagemConfirmacao: row.mensagem_confirmacao,
-    antecedenciaMinimaHoras: row.antecedencia_minima_horas,
-    logo: row.logo_url || '',
-    foto: row.foto_url || ''
-  };
-}
-
-function settingsToRow(settings) {
-  return {
-    id: 1,
-    nome_profissional: settings.nomeProfissional,
-    subtitulo: settings.subtitulo,
-    descricao_curta: settings.descricaoCurta,
-    sobre_mim: settings.sobreMim,
-    whatsapp: settings.whatsapp,
-    instagram: settings.instagram,
-    endereco: settings.endereco,
-    cor_primaria: settings.corPrimaria,
-    cor_secundaria: settings.corSecundaria,
-    mensagem_confirmacao: settings.mensagemConfirmacao,
-    antecedencia_minima_horas: settings.antecedenciaMinimaHoras,
-    logo_url: settings.logo || null,
-    foto_url: settings.foto || null,
-    atualizado_em: new Date().toISOString()
-  };
-}
-
-function mapHoursRows(rows) {
-  const hours = {};
-  (rows || []).forEach(row => {
-    hours[row.dia_semana] = {
-      ativo: row.ativo,
-      inicio: row.inicio.slice(0, 5),
-      fim: row.fim.slice(0, 5),
-      intervalos: row.intervalos || []
-    };
-  });
-  return hours;
-}
-
-function mapBlock(row) {
-  return {
-    id: row.id,
-    data: row.data,
-    diaInteiro: row.dia_inteiro,
-    horarios: row.horarios || [],
-    motivo: row.motivo || ''
-  };
-}
-
-function mapAppointment(row) {
-  return {
-    id: row.id,
-    servicoId: row.servico_id,
-    servicoNome: row.servico_nome,
-    duracaoMin: row.duracao_min,
-    preco: Number(row.preco),
-    data: row.data,
-    horario: row.horario.slice(0, 5),
-    clienteNome: row.cliente_nome,
-    clienteWhatsapp: row.cliente_whatsapp,
-    clienteEmail: row.cliente_email || '',
-    observacao: row.observacao || '',
-    status: row.status,
-    criadoEm: row.criado_em
-  };
-}
-
-function mapClient(row) {
-  return {
-    id: row.id,
-    nome: row.nome,
-    whatsapp: row.whatsapp,
-    email: row.email || '',
-    ultimoAgendamento: row.ultimo_agendamento,
-    totalAgendamentos: row.total_agendamentos
-  };
-}
-
-function lancarErro(contexto, error) {
-  console.error(contexto, error);
-  throw new Error(error?.message || 'Ocorreu um erro inesperado. Tente novamente.');
-}
-
-const DataStore = {
-  init: async function () {
-    // Nada a fazer: o schema já existe no Supabase. Mantido apenas
-    // para compatibilidade com o restante do app, que chama
-    // DataStore.init() antes de qualquer outra coisa.
-  },
-
-  /* ---------- Serviços ---------- */
-  getServices: async function ({ apenasAtivos = false } = {}) {
-    let query = supabaseClient.from('services').select('*').order('nome', { ascending: true });
-    if (apenasAtivos) query = query.eq('ativo', true);
-    const { data, error } = await query;
-    if (error) lancarErro('getServices', error);
-    return (data || []).map(mapService);
-  },
-
-  getServiceById: async function (id) {
-    const { data, error } = await supabaseClient.from('services').select('*').eq('id', id).maybeSingle();
-    if (error) lancarErro('getServiceById', error);
-    return mapService(data);
-  },
-
-  saveService: async function (service) {
-    const row = serviceToRow(service);
-    if (service.id) {
-      const { data, error } = await supabaseClient.from('services').update(row).eq('id', service.id).select().single();
-      if (error) lancarErro('saveService(update)', error);
-      return mapService(data);
-    }
-    const { data, error } = await supabaseClient.from('services').insert(row).select().single();
-    if (error) lancarErro('saveService(insert)', error);
-    return mapService(data);
-  },
-
-  deleteService: async function (id) {
-    const { error } = await supabaseClient.from('services').delete().eq('id', id);
-    if (error) lancarErro('deleteService', error);
-    return true;
-  },
-
-  /* ---------- Configurações ---------- */
-  getSettings: async function () {
-    const { data, error } = await supabaseClient.from('settings').select('*').eq('id', 1).maybeSingle();
-    if (error) lancarErro('getSettings', error);
-    return mapSettings(data);
-  },
-
-  saveSettings: async function (settings) {
-    const row = settingsToRow(settings);
-    const { data, error } = await supabaseClient.from('settings').upsert(row).select().single();
-    if (error) lancarErro('saveSettings', error);
-    return mapSettings(data);
-  },
-
-  /* ---------- Horários de funcionamento ---------- */
-  getHours: async function () {
-    const { data, error } = await supabaseClient.from('hours').select('*');
-    if (error) lancarErro('getHours', error);
-    return mapHoursRows(data);
-  },
-
-  saveHours: async function (hours) {
-    const rows = Object.keys(hours).map(dia => ({
-      dia_semana: dia,
-      ativo: hours[dia].ativo,
-      inicio: hours[dia].inicio,
-      fim: hours[dia].fim,
-      intervalos: hours[dia].intervalos || []
-    }));
-    const { error } = await supabaseClient.from('hours').upsert(rows, { onConflict: 'dia_semana' });
-    if (error) lancarErro('saveHours', error);
-    return hours;
-  },
-
-  /* ---------- Bloqueios de data/horário ---------- */
-  getBlocks: async function () {
-    const { data, error } = await supabaseClient.from('blocks').select('*').order('data', { ascending: true });
-    if (error) lancarErro('getBlocks', error);
-    return (data || []).map(mapBlock);
-  },
-
-  addBlock: async function (block) {
-    const row = {
-      data: block.data,
-      dia_inteiro: block.diaInteiro,
-      horarios: block.horarios || [],
-      motivo: block.motivo || null
-    };
-    const { data, error } = await supabaseClient.from('blocks').insert(row).select().single();
-    if (error) lancarErro('addBlock', error);
-    return mapBlock(data);
-  },
-
-  removeBlock: async function (id) {
-    const { error } = await supabaseClient.from('blocks').delete().eq('id', id);
-    if (error) lancarErro('removeBlock', error);
-    return true;
-  },
-
-  /* ---------- Agendamentos ---------- */
-  getAppointments: async function () {
-    const { data, error } = await supabaseClient
-      .from('appointments')
-      .select('*')
-      .order('data', { ascending: true })
-      .order('horario', { ascending: true });
-    if (error) lancarErro('getAppointments', error);
-    return (data || []).map(mapAppointment);
-  },
-
-  getAppointmentsByDate: async function (dataISO) {
-    const { data, error } = await supabaseClient
-      .from('appointments')
-      .select('*')
-      .eq('data', dataISO)
-      .neq('status', 'cancelado')
-      .order('horario', { ascending: true });
-    if (error) lancarErro('getAppointmentsByDate', error);
-    return (data || []).map(mapAppointment);
-  },
-
-  /**
-   * Cria um agendamento via função do banco (rpc_create_appointment),
-   * que revalida o horário no servidor antes de gravar — evita que
-   * duas clientes reservem o mesmo horário ao mesmo tempo.
-   */
-  addAppointment: async function (appointment) {
-    const { data, error } = await supabaseClient.rpc('rpc_create_appointment', {
-      p_servico_id: appointment.servicoId,
-      p_data: appointment.data,
-      p_horario: appointment.horario,
-      p_cliente_nome: appointment.clienteNome,
-      p_cliente_whatsapp: appointment.clienteWhatsapp,
-      p_cliente_email: appointment.clienteEmail || null,
-      p_observacao: appointment.observacao || null
-    });
-    if (error) lancarErro('addAppointment', error);
-    return { ...appointment, id: data };
-  },
-
-  updateAppointment: async function (id, changes) {
-    const row = {};
-    if (changes.status !== undefined) row.status = changes.status;
-    if (changes.data !== undefined) row.data = changes.data;
-    if (changes.horario !== undefined) row.horario = changes.horario;
-    if (changes.observacao !== undefined) row.observacao = changes.observacao;
-    const { data, error } = await supabaseClient.from('appointments').update(row).eq('id', id).select().single();
-    if (error) lancarErro('updateAppointment', error);
-    return mapAppointment(data);
-  },
-
-  cancelAppointment: async function (id) {
-    return this.updateAppointment(id, { status: 'cancelado' });
-  },
-
-  /* ---------- Clientes ---------- */
-  getClients: async function () {
-    const { data, error } = await supabaseClient.from('clients').select('*').order('nome', { ascending: true });
-    if (error) lancarErro('getClients', error);
-    return (data || []).map(mapClient);
-  },
-
-  /* ---------- Disponibilidade (via funções do banco) ---------- */
-  getAvailableSlots: async function (servicoId, dataISO) {
-    const { data, error } = await supabaseClient.rpc('rpc_available_slots', {
-      p_servico_id: servicoId,
-      p_data: dataISO
-    });
-    if (error) lancarErro('getAvailableSlots', error);
-    return data || [];
-  },
-
-  getAvailableDatesInMonth: async function (servicoId, ano, mes) {
-    const { data, error } = await supabaseClient.rpc('rpc_available_dates', {
-      p_servico_id: servicoId,
-      p_ano: ano,
-      p_mes: mes
-    });
-    if (error) lancarErro('getAvailableDatesInMonth', error);
-    return new Set(data || []);
-  },
-
-  /* ---------- Sessão admin (Supabase Auth) ---------- */
-  getSession: async function () {
-    const { data } = await supabaseClient.auth.getSession();
-    return data.session;
+  if (!CONFIGURED) {
+    showConfigBanner();
   }
-};
 
-/* ------------------------------------------------------------------
- * Helpers de data — usados tanto no fluxo público quanto no admin.
- * ------------------------------------------------------------------ */
-const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-const DIAS_SEMANA_LABEL = { dom: 'Domingo', seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta', sex: 'Sexta', sab: 'Sábado' };
+  const sb = CONFIGURED && global.supabase ? global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-function dateToISO(date) {
-  const y = date.getFullYear();
-  const m = (date.getMonth() + 1).toString().padStart(2, '0');
-  const d = date.getDate().toString().padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+  function showConfigBanner() {
+    const inject = () => {
+      if (document.getElementById("supabase-config-banner")) return;
+      const bar = document.createElement("div");
+      bar.id = "supabase-config-banner";
+      bar.style.cssText =
+        "position:fixed;top:0;left:0;right:0;z-index:9999;background:#C4645B;color:#fff;" +
+        "padding:10px 16px;font:600 13px/1.4 system-ui,sans-serif;text-align:center;";
+      bar.textContent =
+        "⚠️ Supabase não configurado — preencha js/supabase-config.js com a URL e a anon key do seu projeto.";
+      document.body.prepend(bar);
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", inject);
+    } else {
+      inject();
+    }
+  }
+
+  function assertConfigured() {
+    if (!sb) {
+      throw new Error(
+        "Supabase não configurado. Edite js/supabase-config.js com a URL e a anon key do seu projeto."
+      );
+    }
+  }
+
+  function todayISO() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+  function addDaysISO(iso, days) {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+  function toMinutes(hhmm) {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  }
+  function fromMinutes(mins) {
+    const h = String(Math.floor(mins / 60)).padStart(2, "0");
+    const m = String(mins % 60).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  /* ---------------------------------------------------------
+     MAPEADORES (snake_case do banco <-> camelCase do app)
+  --------------------------------------------------------- */
+  function mapSettingsFromDb(row) {
+    return {
+      nome: row.nome,
+      subtitulo: row.subtitulo,
+      descricao: row.descricao,
+      foto: row.foto,
+      fotosDestaque: row.fotos_destaque || [],
+      logo: row.logo,
+      whatsapp: row.whatsapp,
+      instagram: row.instagram,
+      endereco: row.endereco,
+      mensagemConfirmacao: row.mensagem_confirmacao,
+      tempoMinimoAgendamentoHoras: row.tempo_minimo_horas,
+      diasFuturosVisiveis: row.dias_futuros_visiveis,
+      cores: row.cores,
+    };
+  }
+  function mapSettingsToDb(obj) {
+    const out = {};
+    if (obj.nome !== undefined) out.nome = obj.nome;
+    if (obj.subtitulo !== undefined) out.subtitulo = obj.subtitulo;
+    if (obj.descricao !== undefined) out.descricao = obj.descricao;
+    if (obj.foto !== undefined) out.foto = obj.foto;
+    if (obj.fotosDestaque !== undefined) out.fotos_destaque = obj.fotosDestaque;
+    if (obj.logo !== undefined) out.logo = obj.logo;
+    if (obj.whatsapp !== undefined) out.whatsapp = obj.whatsapp;
+    if (obj.instagram !== undefined) out.instagram = obj.instagram;
+    if (obj.endereco !== undefined) out.endereco = obj.endereco;
+    if (obj.mensagemConfirmacao !== undefined) out.mensagem_confirmacao = obj.mensagemConfirmacao;
+    if (obj.tempoMinimoAgendamentoHoras !== undefined) out.tempo_minimo_horas = obj.tempoMinimoAgendamentoHoras;
+    if (obj.diasFuturosVisiveis !== undefined) out.dias_futuros_visiveis = obj.diasFuturosVisiveis;
+    if (obj.cores !== undefined) out.cores = obj.cores;
+    return out;
+  }
+
+  function mapServiceFromDb(row) {
+    return {
+      id: row.id,
+      nome: row.nome,
+      descricao: row.descricao,
+      preco: Number(row.preco),
+      duracaoMin: row.duracao_min,
+      imagem: row.imagem,
+      ativo: row.ativo,
+    };
+  }
+  function mapServiceToDb(obj) {
+    const out = {};
+    if (obj.nome !== undefined) out.nome = obj.nome;
+    if (obj.descricao !== undefined) out.descricao = obj.descricao;
+    if (obj.preco !== undefined) out.preco = obj.preco;
+    if (obj.duracaoMin !== undefined) out.duracao_min = obj.duracaoMin;
+    if (obj.imagem !== undefined) out.imagem = obj.imagem;
+    if (obj.ativo !== undefined) out.ativo = obj.ativo;
+    return out;
+  }
+
+  function mapAppointmentFromDb(row) {
+    return {
+      id: row.id,
+      serviceId: row.service_id,
+      data: row.data,
+      horario: (row.horario || "").slice(0, 5),
+      clienteNome: row.cliente_nome,
+      clienteWhatsapp: row.cliente_whatsapp,
+      clienteEmail: row.cliente_email,
+      observacao: row.observacao,
+      status: row.status,
+      criadoEm: row.criado_em,
+    };
+  }
+  function mapAppointmentToDb(obj) {
+    const out = {};
+    if (obj.serviceId !== undefined) out.service_id = obj.serviceId;
+    if (obj.data !== undefined) out.data = obj.data;
+    if (obj.horario !== undefined) out.horario = obj.horario;
+    if (obj.clienteNome !== undefined) out.cliente_nome = obj.clienteNome;
+    if (obj.clienteWhatsapp !== undefined) out.cliente_whatsapp = obj.clienteWhatsapp;
+    if (obj.clienteEmail !== undefined) out.cliente_email = obj.clienteEmail;
+    if (obj.observacao !== undefined) out.observacao = obj.observacao;
+    if (obj.status !== undefined) out.status = obj.status;
+    return out;
+  }
+
+  function mapBlockFromDb(row) {
+    return { id: row.id, date: row.date, fullDay: row.full_day, horarios: row.horarios || [], motivo: row.motivo };
+  }
+
+  /* ---------------------------------------------------------
+     API PÚBLICA — DB (mesma "forma" de antes)
+  --------------------------------------------------------- */
+  const DB = {
+    WEEKDAY_KEYS,
+    WEEKDAY_LABELS,
+    todayISO,
+    addDaysISO,
+
+    /* ---------- CONFIGURAÇÕES ---------- */
+    async getSettings() {
+      assertConfigured();
+      const { data, error } = await sb.from("settings").select("*").eq("id", 1).single();
+      if (error) throw error;
+      return mapSettingsFromDb(data);
+    },
+    async saveSettings(patch) {
+      assertConfigured();
+      const { data, error } = await sb
+        .from("settings")
+        .update(mapSettingsToDb(patch))
+        .eq("id", 1)
+        .select()
+        .single();
+      if (error) throw error;
+      return mapSettingsFromDb(data);
+    },
+
+    /* ---------- UPLOAD DE IMAGENS (Supabase Storage) ----------
+       Antes as fotos (destaque, logo, galeria) eram salvas como texto
+       base64 direto na linha de "settings", o que deixava a linha muito
+       pesada e fazia qualquer salvamento (até de um texto simples)
+       começar a falhar silenciosamente depois de algumas fotos.
+       Agora o arquivo vai para o bucket "site-images" do Storage e só
+       a URL pública (bem leve) é guardada no banco. ---------- */
+    async uploadImage(file, folder = "geral") {
+      assertConfigured();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await sb.storage.from("site-images").upload(path, file, { upsert: false, cacheControl: "3600" });
+      if (error) throw error;
+      const { data } = sb.storage.from("site-images").getPublicUrl(path);
+      return data.publicUrl;
+    },
+    async deleteImage(url) {
+      // Best-effort: se não conseguir remover do Storage, não trava o fluxo do usuário.
+      try {
+        const marker = "/object/public/site-images/";
+        const idx = (url || "").indexOf(marker);
+        if (idx === -1) return;
+        const path = decodeURIComponent(url.slice(idx + marker.length));
+        await sb.storage.from("site-images").remove([path]);
+      } catch (e) {
+        /* ignora erro de limpeza */
+      }
+    },
+
+    /* ---------- HORÁRIOS DE FUNCIONAMENTO ---------- */
+    async getSchedule() {
+      assertConfigured();
+      const { data, error } = await sb.from("schedule").select("data").eq("id", 1).single();
+      if (error) throw error;
+      return data.data;
+    },
+    async saveSchedule(newSchedule) {
+      assertConfigured();
+      const { error } = await sb.from("schedule").update({ data: newSchedule }).eq("id", 1);
+      if (error) throw error;
+      return newSchedule;
+    },
+
+    /* ---------- DATAS/HORÁRIOS BLOQUEADOS ---------- */
+    async getBlockedDates() {
+      assertConfigured();
+      const { data, error } = await sb.from("blocked_dates").select("*").order("date");
+      if (error) throw error;
+      return data.map(mapBlockFromDb);
+    },
+    async addBlockedDate(block) {
+      assertConfigured();
+      const { data, error } = await sb
+        .from("blocked_dates")
+        .insert({ date: block.date, full_day: block.fullDay, horarios: block.horarios || [], motivo: block.motivo })
+        .select()
+        .single();
+      if (error) throw error;
+      return mapBlockFromDb(data);
+    },
+    async removeBlockedDate(id) {
+      assertConfigured();
+      const { error } = await sb.from("blocked_dates").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+
+    /* ---------- SERVIÇOS ---------- */
+    async getServices({ onlyActive = false } = {}) {
+      assertConfigured();
+      let query = sb.from("services").select("*").order("nome");
+      if (onlyActive) query = query.eq("ativo", true);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data.map(mapServiceFromDb);
+    },
+    async getService(id) {
+      assertConfigured();
+      const { data, error } = await sb.from("services").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data ? mapServiceFromDb(data) : null;
+    },
+    async createService(service) {
+      assertConfigured();
+      const { data, error } = await sb.from("services").insert(mapServiceToDb(service)).select().single();
+      if (error) throw error;
+      return mapServiceFromDb(data);
+    },
+    async updateService(id, patch) {
+      assertConfigured();
+      const { data, error } = await sb.from("services").update(mapServiceToDb(patch)).eq("id", id).select().single();
+      if (error) throw error;
+      return mapServiceFromDb(data);
+    },
+    async deleteService(id) {
+      assertConfigured();
+      const { error } = await sb.from("services").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+
+    /* ---------- AGENDAMENTOS ----------
+       ATENÇÃO: por segurança (RLS), a tabela appointments só pode
+       ser LIDA por um usuário autenticado (a Nail Designer logada).
+       Um visitante anônimo só pode INSERIR (agendar) — para calcular
+       horários livres, ele usa a função pública get_busy_times(),
+       que devolve só horário + duração, nunca nome/telefone.
+    ---------------------------------------------------------- */
+    async getAppointments(filter = {}) {
+      assertConfigured();
+      let query = sb.from("appointments").select("*");
+      if (filter.date) query = query.eq("data", filter.date);
+      if (filter.dateFrom) query = query.gte("data", filter.dateFrom);
+      if (filter.dateTo) query = query.lte("data", filter.dateTo);
+      if (filter.status) query = query.eq("status", filter.status);
+      query = query.order("data").order("horario");
+      const { data, error } = await query;
+      if (error) throw error;
+      return data.map(mapAppointmentFromDb);
+    },
+    async getAppointment(id) {
+      assertConfigured();
+      const { data, error } = await sb.from("appointments").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data ? mapAppointmentFromDb(data) : null;
+    },
+    async createAppointment(appt) {
+      assertConfigured();
+      const payload = mapAppointmentToDb({ ...appt, status: appt.status || "pendente" });
+      // OBS: sem .select() de propósito. Um visitante anônimo pode INSERIR
+      // um agendamento (política de RLS "appointments: criar publico"), mas
+      // não tem permissão de LEITURA na tabela — só a admin autenticada lê.
+      // Pedir .select() aqui exigiria ler a linha recém-criada, o que a RLS
+      // nega para o visitante e fazia a confirmação falhar sempre.
+      const { error } = await sb.from("appointments").insert(payload);
+      if (error) throw error;
+      return { ...appt, status: payload.status };
+    },
+    async updateAppointment(id, patch) {
+      assertConfigured();
+      const { data, error } = await sb
+        .from("appointments")
+        .update(mapAppointmentToDb(patch))
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return mapAppointmentFromDb(data);
+    },
+    async cancelAppointment(id) {
+      return DB.updateAppointment(id, { status: "cancelado" });
+    },
+    async deleteAppointment(id) {
+      assertConfigured();
+      const { error } = await sb.from("appointments").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+
+    /* ---------- CLIENTES (derivado dos agendamentos; requer login) ---------- */
+    async getClients() {
+      assertConfigured();
+      const { data, error } = await sb.from("appointments").select("*");
+      if (error) throw error;
+      const map = new Map();
+      data.forEach((row) => {
+        const a = mapAppointmentFromDb(row);
+        const key = a.clienteWhatsapp || a.clienteNome;
+        if (!map.has(key)) {
+          map.set(key, { nome: a.clienteNome, whatsapp: a.clienteWhatsapp, email: a.clienteEmail, totalAgendamentos: 0, ultimoAgendamento: a.data });
+        }
+        const c = map.get(key);
+        c.totalAgendamentos += 1;
+        if (a.data > c.ultimoAgendamento) c.ultimoAgendamento = a.data;
+      });
+      return Array.from(map.values()).sort((a, b) => (a.nome > b.nome ? 1 : -1));
+    },
+
+    /* ---------- REGRAS DE DISPONIBILIDADE ---------- */
+    async isDateAvailable(iso) {
+      const schedule = await DB.getSchedule();
+      const weekday = WEEKDAY_KEYS[new Date(iso + "T00:00:00").getDay()];
+      const dayCfg = schedule[weekday];
+      if (!dayCfg || !dayCfg.ativo) return false;
+
+      const blocks = await DB.getBlockedDates();
+      const block = blocks.find((b) => b.date === iso);
+      if (block && block.fullDay) return false;
+
+      return true;
+    },
+
+    async getAvailableSlots(iso, serviceId) {
+      assertConfigured();
+      const [schedule, service, blocks] = await Promise.all([
+        DB.getSchedule(),
+        DB.getService(serviceId),
+        DB.getBlockedDates(),
+      ]);
+
+      const weekday = WEEKDAY_KEYS[new Date(iso + "T00:00:00").getDay()];
+      const dayCfg = schedule[weekday];
+      if (!dayCfg || !dayCfg.ativo) return [];
+
+      const duracao = service ? service.duracaoMin : 30;
+
+      const block = blocks.find((b) => b.date === iso);
+      if (block && block.fullDay) return [];
+      const blockedTimes = block && !block.fullDay ? block.horarios : [];
+
+      const { data: busyRows, error } = await sb.rpc("get_busy_times", { p_date: iso });
+      if (error) throw error;
+      const busy = (busyRows || []).map((r) => {
+        const start = toMinutes((r.horario || "").slice(0, 5));
+        return { start, end: start + (r.duracao_min || 30) };
+      });
+
+      const settings = await DB.getSettings();
+      const now = new Date();
+      const isToday = iso === todayISO();
+      const minLeadMinutes = (settings.tempoMinimoAgendamentoHoras || 0) * 60;
+      const earliestAllowed = isToday ? now.getHours() * 60 + now.getMinutes() + minLeadMinutes : -1;
+
+      const slots = [];
+      const STEP = 30;
+
+      (dayCfg.expediente || []).forEach((range) => {
+        let cursor = toMinutes(range.inicio);
+        const end = toMinutes(range.fim);
+        while (cursor + duracao <= end) {
+          const slotEnd = cursor + duracao;
+          const withinPause = (dayCfg.pausas || []).some((p) => {
+            const pStart = toMinutes(p.inicio);
+            const pEnd = toMinutes(p.fim);
+            return cursor < pEnd && slotEnd > pStart;
+          });
+          const overlapsBusy = busy.some((b) => cursor < b.end && slotEnd > b.start);
+          const isBlockedTime = blockedTimes.includes(fromMinutes(cursor));
+          const tooSoon = isToday && cursor < earliestAllowed;
+
+          if (!withinPause && !overlapsBusy && !isBlockedTime && !tooSoon) {
+            slots.push(fromMinutes(cursor));
+          }
+          cursor += STEP;
+        }
+      });
+
+      return slots;
+    },
+
+    /* ---------- AUTENTICAÇÃO ADMIN (Supabase Auth — e-mail + senha) ---------- */
+    async login(email, password) {
+      assertConfigured();
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw new Error("E-mail ou senha inválidos.");
+      return { token: data.session.access_token, email: data.user.email };
+    },
+    async logout() {
+      if (!sb) return;
+      await sb.auth.signOut();
+    },
+    async resetPassword(email) {
+      assertConfigured();
+      const { error } = await sb.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      return true;
+    },
+    async getSession() {
+      if (!sb) return null;
+      const { data } = await sb.auth.getSession();
+      return data.session || null;
+    },
+    async requireAuth() {
+      const session = await DB.getSession();
+      if (!session) {
+        window.location.href = "../login.html";
+      }
+      return session;
+    },
+  };
+
+  global.DB = DB;
+})(window);

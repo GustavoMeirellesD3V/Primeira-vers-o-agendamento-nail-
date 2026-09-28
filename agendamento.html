@@ -2,110 +2,35 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Agendar horário</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Agendar Horário — Nail Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/agendamento.css">
 </head>
 <body>
 
-<div class="agenda-topbar">
-  <div class="agenda-topbar__inner">
-    <a href="#" id="btn-voltar" class="agenda-voltar" aria-label="Voltar">‹</a>
-    <div class="progresso" id="progresso">
-      <span class="progresso__passo"></span>
-      <span class="progresso__passo"></span>
-      <span class="progresso__passo"></span>
-      <span class="progresso__passo"></span>
-      <span class="progresso__passo"></span>
+  <div class="book-header">
+    <div class="book-header-inner">
+      <button class="back-btn" id="back-btn" aria-label="Voltar">←</button>
+      <div class="stepper" id="stepper"></div>
     </div>
   </div>
-</div>
 
-<main class="agenda-main">
+  <div class="step-label" id="step-label"></div>
 
-  <!-- ETAPA 1 — SERVIÇO -->
-  <section class="etapa" data-etapa="1">
-    <h1 class="etapa__titulo">Qual serviço você quer?</h1>
-    <p class="etapa__legenda">Escolha o cuidado para esta visita.</p>
-    <div id="lista-opcoes-servico"></div>
-  </section>
+  <main class="book-main" id="book-main"></main>
 
-  <!-- ETAPA 2 — DATA -->
-  <section class="etapa" data-etapa="2">
-    <h1 class="etapa__titulo">Escolha a data</h1>
-    <p class="etapa__legenda">Datas em cinza não têm atendimento disponível.</p>
-    <div id="calendario"></div>
-  </section>
+  <div class="book-footer" id="book-footer"></div>
 
-  <!-- ETAPA 3 — HORÁRIO -->
-  <section class="etapa" data-etapa="3">
-    <h1 class="etapa__titulo">Escolha o horário</h1>
-    <p class="etapa__legenda" id="legenda-horarios">Horários disponíveis para a data escolhida.</p>
-    <div id="area-horarios"></div>
-  </section>
+  <div class="toast" id="toast"></div>
 
-  <!-- ETAPA 4 — DADOS DA CLIENTE -->
-  <section class="etapa" data-etapa="4">
-    <h1 class="etapa__titulo">Seus dados</h1>
-    <p class="etapa__legenda">Para confirmarmos o seu horário.</p>
-    <form id="form-dados" novalidate>
-      <div class="campo" id="campo-nome">
-        <label for="input-nome">Nome completo</label>
-        <input type="text" id="input-nome" name="nome" autocomplete="name" placeholder="Como podemos te chamar">
-        <span class="campo__erro">Digite seu nome completo.</span>
-      </div>
-      <div class="campo" id="campo-whatsapp">
-        <label for="input-whatsapp">WhatsApp</label>
-        <input type="tel" id="input-whatsapp" name="whatsapp" autocomplete="tel" placeholder="(11) 91234-5678">
-        <span class="campo__erro">Digite um WhatsApp válido com DDD.</span>
-      </div>
-      <div class="campo">
-        <label for="input-email">E-mail <span style="font-weight:400;color:var(--color-text-soft)">(opcional)</span></label>
-        <input type="email" id="input-email" name="email" autocomplete="email" placeholder="seu@email.com">
-      </div>
-      <div class="campo">
-        <label for="input-obs">Observação <span style="font-weight:400;color:var(--color-text-soft)">(opcional)</span></label>
-        <textarea id="input-obs" name="observacao" placeholder="Alguma observação para seu atendimento?"></textarea>
-      </div>
-    </form>
-  </section>
-
-  <!-- ETAPA 5 — CONFIRMAÇÃO -->
-  <section class="etapa" data-etapa="5">
-    <h1 class="etapa__titulo">Confirme seu agendamento</h1>
-    <p class="etapa__legenda">Revise as informações antes de confirmar.</p>
-    <div class="resumo__erro" id="resumo-erro"></div>
-    <div class="resumo" id="resumo"></div>
-  </section>
-
-  <!-- ETAPA 6 — SUCESSO -->
-  <section class="etapa" data-etapa="6">
-    <div class="sucesso">
-      <div class="sucesso__icone">💅</div>
-      <h1 class="sucesso__titulo">Agendamento confirmado!</h1>
-      <p class="sucesso__texto" id="mensagem-sucesso">Mal posso esperar para te receber.</p>
-      <div class="resumo" id="resumo-final"></div>
-      <div class="sucesso__acoes">
-        <a href="#" id="btn-calendario" class="btn btn--ghost btn--full">Adicionar ao calendário</a>
-        <a href="#" id="btn-whatsapp-sucesso" class="btn btn--primary btn--full" target="_blank" rel="noopener">Falar pelo WhatsApp</a>
-        <a href="index.html" class="btn btn--ghost btn--full">Voltar ao início</a>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<div class="barra-inferior" id="barra-inferior">
-  <div class="barra-inferior__inner">
-    <button type="button" class="btn btn--primary btn--full" id="btn-continuar" disabled>Continuar</button>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="js/supabase-config.js"></script>
-<script src="js/data.js"></script>
-<script src="js/calendario.js"></script>
-<script src="js/agendamento.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/calendario.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/agendamento.js"></script>
 </body>
 </html>
