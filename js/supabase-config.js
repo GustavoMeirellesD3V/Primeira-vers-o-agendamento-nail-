@@ -14,5 +14,5 @@
    e nunca deve aparecer em código que roda no navegador.
    ========================================================= */
 
-const SUPABASE_URL = "https://vbxfgzcjfbequexrtzwa.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_LZwkz-1gTXOmCMKb_ecLXw_gstmPYFL";
+const SUPABASE_URL = "https://klpnnbajqwilbhtnpqmn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_ebR40y5jK8GR628pIfIICA_eLD-BRXR";
