@@ -2,98 +2,96 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<title>Login — Área Administrativa</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrar · Área administrativa</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 </head>
 <body class="admin-body">
 
-  <div class="login-screen">
-    <div class="login-card">
-      <div class="logo-badge" data-bind="logo" style="margin:0 auto 16px;">N</div>
-      <h1>Área Administrativa</h1>
-      <p class="subtitle" style="text-align:center;">Entre para gerenciar sua agenda</p>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-card__logo">✦</div>
+    <h1 class="login-card__titulo">Área administrativa</h1>
+    <p class="login-card__legenda">Entre para gerenciar sua agenda.</p>
 
-      <div class="login-error" id="login-error">E-mail ou senha inválidos.</div>
-      <div class="login-error" id="login-info" style="background:#E3F1E6;color:var(--color-success);">Enviamos um link de redefinição para o seu e-mail.</div>
+    <div class="login-card__erro" id="erro-login"></div>
+    <div class="login-card__sucesso" id="sucesso-login"></div>
 
-      <form id="login-form">
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" name="email" placeholder="seu@email.com" required autocomplete="username">
-        </div>
-        <div class="form-group">
-          <label for="password">Senha</label>
-          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Entrar</button>
-      </form>
-
-      <div class="login-footer-link">
-        <a href="#" id="forgot-link">Esqueci minha senha</a>
+    <form id="form-login" novalidate>
+      <div class="campo">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" placeholder="voce@studio.com" required>
       </div>
-    </div>
+      <div class="campo">
+        <label for="login-senha">Senha</label>
+        <input type="password" id="login-senha" autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn--primary btn--full" id="btn-entrar">Entrar</button>
+    </form>
+
+    <button type="button" class="login-card__esqueci" id="link-esqueci">Esqueci minha senha</button>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-config.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      await window.NailTheme.applyTheme();
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  (async function () {
+    if (await AuthService.isLoggedIn()) {
+      window.location.href = 'admin/dashboard.html';
+      return;
+    }
 
-      // Se já estiver logada, vai direto pro dashboard
-      const session = await DB.getSession();
-      if (session) {
+    const form = document.getElementById('form-login');
+    const erroBox = document.getElementById('erro-login');
+    const sucessoBox = document.getElementById('sucesso-login');
+    const btn = document.getElementById('btn-entrar');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      erroBox.classList.remove('login-card__erro--ativo');
+      sucessoBox.classList.remove('login-card__sucesso--ativo');
+      btn.disabled = true;
+      btn.textContent = 'Entrando…';
+
+      const email = document.getElementById('login-email').value;
+      const senha = document.getElementById('login-senha').value;
+      const resultado = await AuthService.login(email, senha);
+
+      if (resultado.ok) {
         window.location.href = 'admin/dashboard.html';
+      } else {
+        erroBox.textContent = resultado.erro;
+        erroBox.classList.add('login-card__erro--ativo');
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    });
+
+    document.getElementById('link-esqueci').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value.trim();
+      erroBox.classList.remove('login-card__erro--ativo');
+      sucessoBox.classList.remove('login-card__sucesso--ativo');
+
+      if (!email) {
+        erroBox.textContent = 'Digite seu e-mail no campo acima e clique em "Esqueci minha senha" de novo.';
+        erroBox.classList.add('login-card__erro--ativo');
         return;
       }
 
-      const form = document.getElementById('login-form');
-      const errorBox = document.getElementById('login-error');
-      const infoBox = document.getElementById('login-info');
-      const submitBtn = document.getElementById('submit-btn');
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorBox.classList.remove('show');
-        infoBox.classList.remove('show');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Entrando...';
-        try {
-          await DB.login(form.email.value.trim(), form.password.value);
-          window.location.href = 'admin/dashboard.html';
-        } catch (err) {
-          errorBox.textContent = err.message;
-          errorBox.classList.add('show');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Entrar';
-        }
-      });
-
-      document.getElementById('forgot-link').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const email = form.email.value.trim();
-        if (!email) {
-          errorBox.textContent = 'Digite seu e-mail no campo acima primeiro.';
-          errorBox.classList.add('show');
-          return;
-        }
-        try {
-          await DB.resetPassword(email);
-          errorBox.classList.remove('show');
-          infoBox.classList.add('show');
-        } catch (err) {
-          errorBox.textContent = 'Não foi possível enviar o e-mail de redefinição.';
-          errorBox.classList.add('show');
-        }
-      });
+      const resultado = await AuthService.sendPasswordReset(email);
+      if (resultado.ok) {
+        sucessoBox.textContent = 'Se esse e-mail estiver cadastrado, você vai receber um link para redefinir a senha.';
+        sucessoBox.classList.add('login-card__sucesso--ativo');
+      } else {
+        erroBox.textContent = 'Não foi possível enviar o e-mail agora. Tente novamente em instantes.';
+        erroBox.classList.add('login-card__erro--ativo');
+      }
     });
-  </script>
+  })();
+</script>
 </body>
 </html>

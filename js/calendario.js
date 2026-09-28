@@ -1,114 +1,100 @@
-/* =========================================================
-   NAIL STUDIO — calendario.js
-   Componente de calendário reutilizável (site público e admin)
-   ========================================================= */
+/**
+ * calendario.js
+ * ------------------------------------------------------------------
+ * Componente de calendário mensal reutilizável.
+ * Usado na etapa "Escolher data" do agendamento público.
+ * ------------------------------------------------------------------ */
 
-(function (global) {
-  const MONTH_LABELS = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-  ];
-  const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MESES_LABEL = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-  /**
-   * Renderiza um calendário mensal dentro de `container`.
-   * @param {HTMLElement} container
-   * @param {Object} opts
-   *   - year, month (0-11)
-   *   - selectedDate (iso string | null)
-   *   - isAvailable(iso) => boolean | Promise<boolean>
-   *   - minDate (iso), maxDate (iso)
-   *   - onSelect(iso)
-   *   - onMonthChange(year, month)
-   */
-  async function renderCalendar(container, opts) {
-    const {
-      year,
-      month,
-      selectedDate,
-      isAvailable,
-      minDate,
-      maxDate,
-      onSelect,
-      onMonthChange,
-    } = opts;
+/**
+ * Renderiza um calendário de mês dentro de `container`.
+ *
+ * @param {HTMLElement} container
+ * @param {Object} opts
+ * @param {string}   opts.servicoId      - serviço já escolhido (define a disponibilidade)
+ * @param {Date}     opts.mesReferencia  - qualquer data dentro do mês a exibir
+ * @param {Date}     [opts.selecionada]  - data atualmente selecionada
+ * @param {Function} opts.onSelectDate   - (Date) => void
+ * @param {Function} opts.onMesChange    - (Date novoMesReferencia) => void
+ * @param {Date}     [opts.minDate]      - não permite selecionar antes disso (padrão: hoje)
+ */
+async function renderCalendario(container, opts) {
+  const { servicoId, mesReferencia, selecionada, onSelectDate, onMesChange } = opts;
+  const minDate = opts.minDate || new Date(new Date().setHours(0, 0, 0, 0));
 
-    const firstDay = new Date(year, month, 1);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startWeekday = firstDay.getDay();
-    const todayIso = new Date().toISOString().slice(0, 10);
+  const ano = mesReferencia.getFullYear();
+  const mes = mesReferencia.getMonth();
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes + 1, 0);
+  const totalDias = ultimoDia.getDate();
+  const offsetInicio = primeiroDia.getDay(); // 0 = domingo
 
-    container.innerHTML = `
-      <div class="calendar-nav">
-        <button type="button" data-nav="prev" aria-label="Mês anterior">‹</button>
-        <div class="calendar-month-label">${MONTH_LABELS[month]} ${year}</div>
-        <button type="button" data-nav="next" aria-label="Próximo mês">›</button>
-      </div>
-      <div class="calendar-grid" id="cal-grid">
-        ${WEEKDAY_SHORT.map((w) => `<div class="weekday">${w}</div>`).join("")}
-      </div>
-      <div class="calendar-legend">
-        <span><i class="legend-dot avail"></i> Disponível</span>
-        <span><i class="legend-dot unavail"></i> Indisponível</span>
-      </div>
-    `;
+  container.innerHTML = `
+    <div class="cal-header">
+      <button type="button" class="cal-nav" data-nav="-1" aria-label="Mês anterior">‹</button>
+      <span class="cal-titulo">${MESES_LABEL[mes]} ${ano}</span>
+      <button type="button" class="cal-nav" data-nav="1" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="cal-grid cal-grid-cabecalho">
+      ${DIAS_SEMANA_CURTO.map(d => `<span>${d}</span>`).join('')}
+    </div>
+    <div class="cal-grid cal-grid-dias" id="cal-dias">
+      <div class="cal-loading">Carregando datas…</div>
+    </div>
+  `;
 
-    const grid = container.querySelector("#cal-grid");
-
-    for (let i = 0; i < startWeekday; i++) {
-      grid.insertAdjacentHTML("beforeend", `<div class="calendar-day empty"></div>`);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const isPast = iso < todayIso;
-      const beforeMin = minDate && iso < minDate;
-      const afterMax = maxDate && iso > maxDate;
-
-      const el = document.createElement("div");
-      el.className = "calendar-day";
-      el.textContent = day;
-      el.dataset.date = iso;
-      if (iso === todayIso) el.classList.add("today");
-
-      if (isPast || beforeMin || afterMax) {
-        el.classList.add("disabled");
-      } else {
-        // marca como "carregando" disponibilidade — resolvido abaixo
-        el.classList.add("checking");
-      }
-      grid.appendChild(el);
-    }
-
-    // Resolve disponibilidade (pode ser assíncrona)
-    const dayEls = Array.from(grid.querySelectorAll(".calendar-day.checking"));
-    await Promise.all(
-      dayEls.map(async (el) => {
-        const iso = el.dataset.date;
-        const available = await isAvailable(iso);
-        el.classList.remove("checking");
-        el.classList.add(available ? "available" : "disabled");
-        if (available) {
-          el.addEventListener("click", () => onSelect(iso));
-        }
-        if (iso === selectedDate) el.classList.add("selected");
-      })
-    );
-
-    const prevBtn = container.querySelector('[data-nav="prev"]');
-    const nextBtn = container.querySelector('[data-nav="next"]');
-    const now = new Date();
-    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
-    prevBtn.disabled = isCurrentMonth;
-    prevBtn.addEventListener("click", () => {
-      const d = new Date(year, month - 1, 1);
-      onMonthChange(d.getFullYear(), d.getMonth());
+  container.querySelectorAll('.cal-nav').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const delta = parseInt(btn.dataset.nav, 10);
+      const novoMes = new Date(ano, mes + delta, 1);
+      onMesChange(novoMes);
     });
-    nextBtn.addEventListener("click", () => {
-      const d = new Date(year, month + 1, 1);
-      onMonthChange(d.getFullYear(), d.getMonth());
-    });
+  });
+
+  const diasContainer = container.querySelector('#cal-dias');
+
+  let datasDisponiveis;
+  try {
+    datasDisponiveis = await DataStore.getAvailableDatesInMonth(servicoId, ano, mes + 1);
+  } catch (e) {
+    diasContainer.innerHTML = '<div class="cal-loading">Não foi possível carregar as datas. Tente novamente.</div>';
+    return;
   }
 
-  global.NailCalendar = { renderCalendar, MONTH_LABELS, WEEKDAY_SHORT };
-})(window);
+  const celulas = [];
+  for (let i = 0; i < offsetInicio; i++) {
+    celulas.push('<span class="cal-dia cal-dia--vazio"></span>');
+  }
+
+  for (let dia = 1; dia <= totalDias; dia++) {
+    const data = new Date(ano, mes, dia);
+    const iso = dateToISO(data);
+    const passou = data < minDate;
+    const disponivel = datasDisponiveis.has(iso) && !passou;
+    const isSelecionada = selecionada && dateToISO(selecionada) === iso;
+    const isHoje = dateToISO(new Date()) === iso;
+
+    const classes = ['cal-dia'];
+    if (!disponivel) classes.push('cal-dia--indisponivel');
+    if (isSelecionada) classes.push('cal-dia--selecionada');
+    if (isHoje) classes.push('cal-dia--hoje');
+
+    celulas.push(
+      `<button type="button" class="${classes.join(' ')}" data-dia="${dia}" ${disponivel ? '' : 'disabled'} aria-label="${dia} de ${MESES_LABEL[mes]}">${dia}</button>`
+    );
+  }
+
+  diasContainer.innerHTML = celulas.join('');
+
+  diasContainer.querySelectorAll('.cal-dia:not(.cal-dia--vazio):not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dia = parseInt(btn.dataset.dia, 10);
+      onSelectDate(new Date(ano, mes, dia));
+    });
+  });
+}
