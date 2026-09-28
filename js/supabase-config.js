@@ -14,7 +14,5 @@
  * deste arquivo (ver <script> no <head>/fim do <body> de cada página).
  * ------------------------------------------------------------------ */
 
-const SUPABASE_URL = 'https://klpnnbajqwilbhtnpqmn.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ebR40y5jK8GR628pIfIICA_eLD-BRXR';
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = "https://vbxfgzcjfbequexrtzwa.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LZwkz-1gTXOmCMKb_ecLXw_gstmPYFL";
