@@ -75,14 +75,21 @@
     }
   }
 
+  // Data no fuso LOCAL do navegador. Não usar toISOString(): ela converte
+  // para UTC e, no Brasil (UTC-3), a partir das 21h já devolve o dia seguinte.
+  function localISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
   function todayISO() {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return localISO(new Date());
   }
   function addDaysISO(iso, days) {
     const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    return localISO(d);
   }
   function toMinutes(hhmm) {
     const [h, m] = hhmm.split(":").map(Number);

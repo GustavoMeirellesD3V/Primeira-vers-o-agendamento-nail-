@@ -36,7 +36,8 @@
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const startWeekday = firstDay.getDay();
-    const todayIso = new Date().toISOString().slice(0, 10);
+    const _now = new Date();
+    const todayIso = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-${String(_now.getDate()).padStart(2, "0")}`;
 
     container.innerHTML = `
       <div class="calendar-nav">
