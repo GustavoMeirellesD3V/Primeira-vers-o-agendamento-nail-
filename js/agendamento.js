@@ -149,7 +149,16 @@
       selectedDate: state.date,
       minDate: DB.todayISO(),
       maxDate,
-      isAvailable: (iso) => DB.isDateAvailable(iso),
+      // Um dia só fica clicável se o serviço escolhido realmente couber em algum horário livre.
+      isAvailable: async (iso) => {
+        if (!(await DB.isDateAvailable(iso))) return false;
+        try {
+          const slots = await DB.getAvailableSlots(iso, state.service.id);
+          return slots.length > 0;
+        } catch (e) {
+          return false;
+        }
+      },
       onSelect: (iso) => {
         state.date = iso;
         state.time = null;

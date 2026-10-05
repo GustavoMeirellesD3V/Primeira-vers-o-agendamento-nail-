@@ -75,21 +75,14 @@
     }
   }
 
-  // Data no fuso LOCAL do navegador. Não usar toISOString(): ela converte
-  // para UTC e, no Brasil (UTC-3), a partir das 21h já devolve o dia seguinte.
-  function localISO(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
   function todayISO() {
-    return localISO(new Date());
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
   }
   function addDaysISO(iso, days) {
     const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + days);
-    return localISO(d);
+    return d.toISOString().slice(0, 10);
   }
   function toMinutes(hhmm) {
     const [h, m] = hhmm.split(":").map(Number);
@@ -104,6 +97,18 @@
   /* ---------------------------------------------------------
      MAPEADORES (snake_case do banco <-> camelCase do app)
   --------------------------------------------------------- */
+  // Junta chamadas simultâneas idênticas numa só requisição (sem cache depois que termina).
+  function dedupeInFlight(fn) {
+    const pending = new Map();
+    return function (...args) {
+      const key = JSON.stringify(args);
+      if (pending.has(key)) return pending.get(key);
+      const p = fn.apply(this, args).finally(() => pending.delete(key));
+      pending.set(key, p);
+      return p;
+    };
+  }
+
   function mapSettingsFromDb(row) {
     return {
       nome: row.nome,
@@ -449,7 +454,7 @@
       (dayCfg.expediente || []).forEach((range) => {
         let cursor = toMinutes(range.inicio);
         const end = toMinutes(range.fim);
-        while (cursor + duracao <= end) {
+        while (cursor < end) {
           const slotEnd = cursor + duracao;
           const withinPause = (dayCfg.pausas || []).some((p) => {
             const pStart = toMinutes(p.inicio);
@@ -500,6 +505,11 @@
       return session;
     },
   };
+
+  // Evita dezenas de requisições repetidas quando o calendário confere vários dias de uma vez.
+  ["getSettings", "getSchedule", "getBlockedDates", "getService"].forEach((name) => {
+    DB[name] = dedupeInFlight(DB[name]);
+  });
 
   global.DB = DB;
 })(window);
