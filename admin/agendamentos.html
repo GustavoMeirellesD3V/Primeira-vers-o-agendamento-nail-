@@ -7,8 +7,8 @@
 <title>Agendamentos — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/admin.css">
+<link rel="stylesheet" href="../css/style.css?v=3">
+<link rel="stylesheet" href="../css/admin.css?v=3">
 </head>
 <body>
 
@@ -61,8 +61,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=3"></script>
+  <script src="../js/admin.js?v=3"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Agendamentos", subtitle: "Todos os agendamentos da sua agenda" });
@@ -119,7 +119,8 @@
             </div>
             <div class="actions">
               <button class="icon-btn" data-edit="${a.id}" title="Editar">✏️</button>
-              <a class="icon-btn" href="${Admin.waLink(a.clienteWhatsapp, "Olá " + a.clienteNome + "!")}" target="_blank" title="WhatsApp">💬</a>
+              <a class="icon-btn" href="${Admin.linkConfirmacao(a, serviceMap[a.serviceId])}" target="_blank" rel="noopener" title="Enviar confirmação pelo WhatsApp">✅</a>
+              <a class="icon-btn" href="${Admin.linkLembrete(a, serviceMap[a.serviceId])}" target="_blank" rel="noopener" title="Enviar lembrete pelo WhatsApp">🔔</a>
             </div>
           </div>`
           )

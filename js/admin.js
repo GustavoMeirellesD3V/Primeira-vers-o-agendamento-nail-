@@ -49,6 +49,7 @@
     if (!session) return null; // redirecionando para login
 
     const settings = await DB.getSettings();
+    cachedSettings = settings;
     applyThemeVars(settings);
 
     const active = activeHref || currentPage();
@@ -159,8 +160,69 @@
   function statusBadge(status) {
     return `<span class="badge badge-${status}">${statusLabel(status)}</span>`;
   }
+  /* ---------- MENSAGENS PRONTAS DE WHATSAPP ----------
+     Monta o texto e o link. O envio continua manual: o link abre o
+     WhatsApp com a mensagem escrita e a profissional só aperta enviar.
+  ---------------------------------------------------------- */
+  let cachedSettings = null;
+
+  // Evita repetir o 55 quando o número já foi salvo com o código do país.
+  function telefoneInternacional(phone) {
+    let num = (phone || "").replace(/\D/g, "");
+    if (num.length > 11 && num.indexOf("55") === 0) num = num.slice(2);
+    return "55" + num;
+  }
+
   function waLink(phone, text) {
-    return `https://wa.me/55${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text || "")}`;
+    return `https://wa.me/${telefoneInternacional(phone)}?text=${encodeURIComponent(text || "")}`;
+  }
+
+  // Data por extenso para a cliente ler: "quarta-feira, 14/10".
+  function dataPorExtenso(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const semana = d.toLocaleDateString("pt-BR", { weekday: "long" });
+    const dia = String(d.getDate()).padStart(2, "0");
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    return `${semana}, ${dia}/${mes}`;
+  }
+
+  function primeiroNome(nome) {
+    return (nome || "").trim().split(" ")[0] || "";
+  }
+
+  function msgConfirmacao(a, servico) {
+    const estudio = (cachedSettings && cachedSettings.nome) || "";
+    const endereco = (cachedSettings && cachedSettings.endereco) || "";
+    const linhas = [
+      `Oi, ${primeiroNome(a.clienteNome)}! Aqui é do ${estudio}.`,
+      ``,
+      `Seu horário está confirmado:`,
+      `${servico ? servico.nome : "Atendimento"}`,
+      `${dataPorExtenso(a.data)} às ${a.horario}`,
+    ];
+    if (endereco) linhas.push(``, `Endereço: ${endereco}`);
+    linhas.push(``, `Qualquer imprevisto é só me avisar por aqui. Até lá!`);
+    return linhas.join("\n");
+  }
+
+  function msgLembrete(a, servico) {
+    const estudio = (cachedSettings && cachedSettings.nome) || "";
+    return [
+      `Oi, ${primeiroNome(a.clienteNome)}! Passando para lembrar do seu horário no ${estudio}.`,
+      ``,
+      `${servico ? servico.nome : "Atendimento"}`,
+      `${dataPorExtenso(a.data)} às ${a.horario}`,
+      ``,
+      `Consegue vir no horário? Se precisar remarcar, é só me falar por aqui.`,
+    ].join("\n");
+  }
+
+  // Atalhos: já devolvem o link pronto para usar no href do botão.
+  function linkConfirmacao(a, servico) {
+    return waLink(a.clienteWhatsapp, msgConfirmacao(a, servico));
+  }
+  function linkLembrete(a, servico) {
+    return waLink(a.clienteWhatsapp, msgLembrete(a, servico));
   }
 
   global.Admin = {
@@ -171,6 +233,10 @@
     statusLabel,
     statusBadge,
     waLink,
+    msgConfirmacao,
+    msgLembrete,
+    linkConfirmacao,
+    linkLembrete,
     NAV_ITEMS,
   };
 })(window);

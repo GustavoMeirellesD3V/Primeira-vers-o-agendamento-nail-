@@ -7,24 +7,26 @@
 <title>Dashboard — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/admin.css">
+<link rel="stylesheet" href="../css/style.css?v=3">
+<link rel="stylesheet" href="../css/admin.css?v=3">
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=3"></script>
+  <script src="../js/admin.js?v=3"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Dashboard", subtitle: "Visão geral do seu dia" });
       if (!content) return;
 
       const today = DB.todayISO();
-      const [appointmentsToday, services, allAppointments] = await Promise.all([
+      const tomorrow = DB.addDaysISO(today, 1);
+      const [appointmentsToday, services, allAppointments, appointmentsTomorrow] = await Promise.all([
         DB.getAppointments({ date: today }),
         DB.getServices(),
         DB.getAppointments({}),
+        DB.getAppointments({ date: tomorrow }),
       ]);
 
       const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
@@ -73,6 +75,17 @@
           </div>
         </div>
 
+        <div class="panel" id="reminder-panel">
+          <div class="panel-header">
+            <h2>Lembretes de amanhã</h2>
+            <span class="form-hint" style="margin:0;">${Admin.formatDateLabel(tomorrow)}</span>
+          </div>
+          <p class="form-hint" style="margin-bottom:12px;">
+            Toque em “Enviar lembrete” para abrir o WhatsApp da cliente com a mensagem já escrita. É só apertar enviar.
+          </p>
+          <div id="reminder-list"></div>
+        </div>
+
         <div class="main-grid">
           <div class="panel">
             <div class="panel-header">
@@ -115,6 +128,72 @@
           )
           .join("");
       }
+
+      /* ---------- LEMBRETES DE AMANHÃ ----------
+         Guarda no proprio aparelho quais lembretes ja foram enviados,
+         so para nao mandar a mesma mensagem duas vezes.
+      ------------------------------------------------- */
+      const SENT_KEY = "lembretes-enviados";
+
+      function lembretesEnviados() {
+        try {
+          return JSON.parse(localStorage.getItem(SENT_KEY)) || {};
+        } catch (e) {
+          return {};
+        }
+      }
+      function marcarEnviado(id) {
+        try {
+          const atual = lembretesEnviados();
+          atual[id] = true;
+          localStorage.setItem(SENT_KEY, JSON.stringify(atual));
+        } catch (e) {
+          /* se o navegador bloquear o armazenamento, o botao segue funcionando */
+        }
+      }
+
+      const reminderEl = document.getElementById("reminder-list");
+      const activeTomorrow = appointmentsTomorrow
+        .filter((a) => a.status !== "cancelado")
+        .sort((a, b) => a.horario.localeCompare(b.horario));
+
+      function renderReminders() {
+        if (!activeTomorrow.length) {
+          reminderEl.innerHTML = `<div class="empty-hint">Nenhum agendamento para amanhã.</div>`;
+          return;
+        }
+        const enviados = lembretesEnviados();
+        reminderEl.innerHTML = activeTomorrow
+          .map(
+            (a) => `
+          <div class="agenda-item">
+            <div class="time">${a.horario}</div>
+            <div class="bar"></div>
+            <div class="info">
+              <strong>${a.clienteNome}</strong>
+              <span>${serviceMap[a.serviceId]?.nome || "Serviço removido"}${
+                enviados[a.id] ? " · <strong style=\"color:var(--color-success,#2e7d5b);\">lembrete enviado ✓</strong>" : ""
+              }</span>
+            </div>
+            <div class="actions">
+              <a class="btn btn-outline btn-sm" href="${Admin.linkLembrete(a, serviceMap[a.serviceId])}"
+                 target="_blank" rel="noopener" data-remind="${a.id}">
+                ${enviados[a.id] ? "Enviar de novo" : "Enviar lembrete"}
+              </a>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        reminderEl.querySelectorAll("[data-remind]").forEach((link) => {
+          link.addEventListener("click", () => {
+            marcarEnviado(link.dataset.remind);
+            // espera o WhatsApp abrir antes de redesenhar a lista
+            setTimeout(renderReminders, 800);
+          });
+        });
+      }
+      renderReminders();
     })();
   </script>
 </body>
