@@ -546,3 +546,16 @@ table.simple-table td { padding: 12px 6px; border-bottom: 1px solid var(--color-
   #reminder-list .agenda-item .actions { width: 100%; margin-top: 8px; }
   #reminder-list .agenda-item .actions .btn { width: 100%; text-align: center; }
 }
+
+/* ---------- Prévia das mensagens do WhatsApp ---------- */
+.msg-preview {
+  white-space: pre-wrap;
+  background: #e7f3e3;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 14px);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  min-height: 60px;
+}

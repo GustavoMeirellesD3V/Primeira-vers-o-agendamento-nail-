@@ -190,31 +190,74 @@
     return (nome || "").trim().split(" ")[0] || "";
   }
 
+  /* Modelos padrão. A profissional pode reescrever em Configurações;
+     o que ela salvar entra no lugar destes textos.               */
+  const MODELO_CONFIRMACAO = [
+    "Oi, {cliente}! Aqui é do {estudio}.",
+    "",
+    "Seu horário está confirmado:",
+    "{servico}",
+    "{data} às {horario}",
+    "",
+    "Endereço: {endereco}",
+    "",
+    "Qualquer imprevisto é só me avisar por aqui. Até lá!",
+  ].join("\n");
+
+  const MODELO_LEMBRETE = [
+    "Oi, {cliente}! Passando para lembrar do seu horário no {estudio}.",
+    "",
+    "{servico}",
+    "{data} às {horario}",
+    "",
+    "Consegue vir no horário? Se precisar remarcar, é só me falar por aqui.",
+  ].join("\n");
+
+  const VARIAVEIS_DISPONIVEIS = ["cliente", "servico", "data", "horario", "estudio", "endereco"];
+
+  // Troca {cliente}, {servico}... pelos valores reais. Se um valor estiver
+  // vazio (ex.: endereço em branco), a linha inteira sai do texto.
+  function aplicarVariaveis(modelo, dados) {
+    let texto = modelo || "";
+    VARIAVEIS_DISPONIVEIS.forEach((chave) => {
+      const valor = (dados[chave] || "").trim();
+      const marcador = "{" + chave + "}";
+      if (!valor) {
+        texto = texto
+          .split("\n")
+          .filter((linha) => linha.indexOf(marcador) === -1)
+          .join("\n");
+        return;
+      }
+      texto = texto.split(marcador).join(valor);
+    });
+    return texto.replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  function dadosDaMensagem(a, servico) {
+    return {
+      cliente: primeiroNome(a.clienteNome),
+      servico: servico ? servico.nome : "Atendimento",
+      data: dataPorExtenso(a.data),
+      horario: a.horario,
+      estudio: (cachedSettings && cachedSettings.nome) || "",
+      endereco: (cachedSettings && cachedSettings.endereco) || "",
+    };
+  }
+
+  function modeloSalvo(tipo) {
+    const guardados = (cachedSettings && cachedSettings.mensagens) || {};
+    const texto = (guardados[tipo] || "").trim();
+    if (texto) return texto;
+    return tipo === "lembrete" ? MODELO_LEMBRETE : MODELO_CONFIRMACAO;
+  }
+
   function msgConfirmacao(a, servico) {
-    const estudio = (cachedSettings && cachedSettings.nome) || "";
-    const endereco = (cachedSettings && cachedSettings.endereco) || "";
-    const linhas = [
-      `Oi, ${primeiroNome(a.clienteNome)}! Aqui é do ${estudio}.`,
-      ``,
-      `Seu horário está confirmado:`,
-      `${servico ? servico.nome : "Atendimento"}`,
-      `${dataPorExtenso(a.data)} às ${a.horario}`,
-    ];
-    if (endereco) linhas.push(``, `Endereço: ${endereco}`);
-    linhas.push(``, `Qualquer imprevisto é só me avisar por aqui. Até lá!`);
-    return linhas.join("\n");
+    return aplicarVariaveis(modeloSalvo("confirmacao"), dadosDaMensagem(a, servico));
   }
 
   function msgLembrete(a, servico) {
-    const estudio = (cachedSettings && cachedSettings.nome) || "";
-    return [
-      `Oi, ${primeiroNome(a.clienteNome)}! Passando para lembrar do seu horário no ${estudio}.`,
-      ``,
-      `${servico ? servico.nome : "Atendimento"}`,
-      `${dataPorExtenso(a.data)} às ${a.horario}`,
-      ``,
-      `Consegue vir no horário? Se precisar remarcar, é só me falar por aqui.`,
-    ].join("\n");
+    return aplicarVariaveis(modeloSalvo("lembrete"), dadosDaMensagem(a, servico));
   }
 
   // Atalhos: já devolvem o link pronto para usar no href do botão.
@@ -237,6 +280,10 @@
     msgLembrete,
     linkConfirmacao,
     linkLembrete,
+    MODELO_CONFIRMACAO,
+    MODELO_LEMBRETE,
+    VARIAVEIS_DISPONIVEIS,
+    aplicarVariaveis,
     NAV_ITEMS,
   };
 })(window);

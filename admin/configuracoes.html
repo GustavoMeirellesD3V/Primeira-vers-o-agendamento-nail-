@@ -31,6 +31,12 @@
 
       const settings = await DB.getSettings();
 
+      const msgsSalvas = settings.mensagens || {};
+      // escapa para o texto salvo nunca quebrar o HTML do textarea
+      const escaparHtml = (t) => (t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const modeloConfirmacao = escaparHtml((msgsSalvas.confirmacao || "").trim() || Admin.MODELO_CONFIRMACAO);
+      const modeloLembrete = escaparHtml((msgsSalvas.lembrete || "").trim() || Admin.MODELO_LEMBRETE);
+
       content.innerHTML = `
         <div class="panel">
           <div class="panel-header"><h2>Dados da profissional</h2></div>
@@ -84,6 +90,43 @@
           </div>
           <div class="form-group"><label>Dourado</label><input type="color" id="c-gold" value="${settings.cores.gold}"></div>
           <button class="btn btn-outline btn-block" id="save-colors">Aplicar cores</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Mensagens do WhatsApp</h2></div>
+          <p class="form-hint" style="margin-bottom:12px;">
+            Estes são os textos que aparecem prontos quando você clica em “Confirmação” ou “Lembrete”
+            no painel. Escreva do seu jeito e use as etiquetas abaixo — elas são trocadas pelos dados
+            de cada cliente na hora do envio.
+          </p>
+          <p class="form-hint" style="margin-bottom:16px;">
+            <strong>{cliente}</strong> primeiro nome ·
+            <strong>{servico}</strong> serviço ·
+            <strong>{data}</strong> data ·
+            <strong>{horario}</strong> hora ·
+            <strong>{estudio}</strong> nome do estúdio ·
+            <strong>{endereco}</strong> endereço
+          </p>
+
+          <form class="admin-form" id="form-mensagens">
+            <div class="form-group">
+              <label>Mensagem de confirmação</label>
+              <textarea id="m-confirmacao" rows="9">${modeloConfirmacao}</textarea>
+            </div>
+            <div class="form-group">
+              <label>Mensagem de lembrete</label>
+              <textarea id="m-lembrete" rows="7">${modeloLembrete}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Prévia da confirmação</label>
+              <div id="preview-mensagem" class="msg-preview"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Salvar mensagens</button>
+            <button type="button" class="btn btn-outline btn-block" id="restaurar-mensagens"
+                    style="margin-top:10px;">Restaurar textos padrão</button>
+          </form>
         </div>
 
         <div class="panel">
@@ -248,6 +291,55 @@
           diasFuturosVisiveis: parseInt(document.getElementById("r-dias").value, 10) || 30,
         });
         showFeedback("Regras salvas com sucesso ✓");
+      });
+
+      /* ---------- MENSAGENS DO WHATSAPP ---------- */
+      const campoConfirmacao = document.getElementById("m-confirmacao");
+      const campoLembrete = document.getElementById("m-lembrete");
+      const previewEl = document.getElementById("preview-mensagem");
+
+      // Exemplo fixo so para a profissional ver como o texto fica.
+      const exemplo = {
+        cliente: "Ana",
+        servico: "Manicure",
+        data: "quarta-feira, 14/10",
+        horario: "15:30",
+        estudio: settings.nome || "",
+        endereco: settings.endereco || "",
+      };
+
+      function atualizarPreview() {
+        previewEl.textContent = Admin.aplicarVariaveis(campoConfirmacao.value, exemplo);
+      }
+      campoConfirmacao.addEventListener("input", atualizarPreview);
+      atualizarPreview();
+
+      document.getElementById("form-mensagens").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+        try {
+          await DB.saveSettings({
+            mensagens: {
+              confirmacao: campoConfirmacao.value.trim(),
+              lembrete: campoLembrete.value.trim(),
+            },
+          });
+          showFeedback("Mensagens salvas com sucesso ✓");
+        } catch (err) {
+          showFeedback("Não foi possível salvar as mensagens. Tente novamente.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Salvar mensagens";
+        }
+      });
+
+      document.getElementById("restaurar-mensagens").addEventListener("click", () => {
+        campoConfirmacao.value = Admin.MODELO_CONFIRMACAO;
+        campoLembrete.value = Admin.MODELO_LEMBRETE;
+        atualizarPreview();
+        showFeedback("Textos padrão restaurados — clique em Salvar para confirmar.");
       });
     })();
   </script>

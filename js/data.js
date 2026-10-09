@@ -128,6 +128,7 @@
       instagram: row.instagram,
       endereco: row.endereco,
       mensagemConfirmacao: row.mensagem_confirmacao,
+      mensagens: row.mensagens_whatsapp || {},
       tempoMinimoAgendamentoHoras: row.tempo_minimo_horas,
       diasFuturosVisiveis: row.dias_futuros_visiveis,
       cores: row.cores,
@@ -145,6 +146,7 @@
     if (obj.instagram !== undefined) out.instagram = obj.instagram;
     if (obj.endereco !== undefined) out.endereco = obj.endereco;
     if (obj.mensagemConfirmacao !== undefined) out.mensagem_confirmacao = obj.mensagemConfirmacao;
+    if (obj.mensagens !== undefined) out.mensagens_whatsapp = obj.mensagens;
     if (obj.tempoMinimoAgendamentoHoras !== undefined) out.tempo_minimo_horas = obj.tempoMinimoAgendamentoHoras;
     if (obj.diasFuturosVisiveis !== undefined) out.dias_futuros_visiveis = obj.diasFuturosVisiveis;
     if (obj.cores !== undefined) out.cores = obj.cores;
