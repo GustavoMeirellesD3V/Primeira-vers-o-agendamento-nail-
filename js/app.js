@@ -4,6 +4,23 @@
    ========================================================= */
 
 (function () {
+  /* Escapa texto vindo do banco antes de injetar com innerHTML.
+     Sem isso, um nome de serviço com < ou > quebra a marcação. */
+  function esc(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c]));
+  }
+
+  /* Ícones dos cards de serviço — SVG de traço no lugar dos emojis,
+     herdam a cor do CSS via currentColor. */
+  const ICON_SERVICE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l-.6 12a2.4 2.4 0 01-4.8 0L9 3.5z"/><path d="M9.3 9.5h5.4"/><path d="M12 18.5v2"/></svg>`;
+  const ICON_CLOCK = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>`;
+
   // Aplica as cores/textos salvos pelo admin em qualquer página pública
   async function applyTheme() {
     const settings = await DB.getSettings();
@@ -54,10 +71,15 @@
         .map(
           (s) => `
         <div class="service-card">
-          <div class="thumb">${s.imagem ? `<img src="${s.imagem}" alt="${s.nome}">` : "💅"}</div>
+          <div class="thumb">${
+            s.imagem
+              ? `<img src="${esc(s.imagem)}" alt="${esc(s.nome)}">`
+              : ICON_SERVICE
+          }</div>
           <div class="info">
-            <h3>${s.nome}</h3>
-            <div class="meta"><span>⏱ ${s.duracaoMin} min</span></div>
+            <h3>${esc(s.nome)}</h3>
+            ${s.descricao ? `<p class="desc">${esc(s.descricao)}</p>` : ""}
+            <div class="meta"><span>${ICON_CLOCK} ${s.duracaoMin} min</span></div>
           </div>
           <div class="price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div>
         </div>`

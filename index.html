@@ -6,86 +6,163 @@
 <title>Nail Studio — Agende seu horário</title>
 <meta name="description" content="Agende seu horário online de forma rápida e prática.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/home.css?v=1">
 </head>
 <body>
 
-  <nav class="navbar">
-    <a class="nav-brand" href="#topo">
-      <div class="logo-badge" data-bind="logo">N</div>
-      <span data-bind="nome">Nail Designer</span>
-    </a>
-    <a class="btn btn-primary nav-cta" href="agendamento.html">Agendar</a>
+  <!-- ===================== NAVBAR ===================== -->
+  <nav class="mp-nav">
+    <div class="mp-nav-inner">
+      <a class="mp-brand" href="#topo">
+        <div class="logo-badge" data-bind="logo">N</div>
+        <span data-bind="nome">Nail Designer</span>
+      </a>
+      <div class="mp-nav-links">
+        <a class="mp-link" href="#servicos">Serviços</a>
+        <a class="mp-link" href="#sobre">Sobre</a>
+        <a class="mp-link" href="#atendimento">Atendimento</a>
+      </div>
+      <a class="mp-btn mp-btn--solid mp-btn--sm mp-nav-cta" href="agendamento.html">
+        Agendar
+        <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
   </nav>
 
-  <header class="hero" id="topo">
-    <div class="hero-glow" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="container">
-      <div class="hero-badge">
-        <span class="dot"></span> Agendamento 100% online
+  <!-- ===================== HERO ===================== -->
+  <header class="mp-hero" id="topo">
+    <div class="mp-wrap">
+      <div class="mp-hero-grid">
+
+        <div class="mp-hero-copy">
+          <p class="mp-badge">
+            <svg class="mp-dot" viewBox="0 0 10 10" aria-hidden="true">
+              <circle class="ping" cx="5" cy="5" r="3.2" fill="#6F9C7D"/>
+              <circle cx="5" cy="5" r="3.2" fill="#6F9C7D"/>
+            </svg>
+            Agendamento 100% online
+          </p>
+
+          <!-- o nome e o subtítulo continuam vindo do painel admin -->
+          <h1 style="position:relative;">
+            <svg class="mp-spark mp-spark--a" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.9 7.1L21 11l-7.1 1.9L12 20l-1.9-7.1L3 11l7.1-1.9L12 2z" fill="currentColor"/></svg>
+            <span data-bind="nome">Nail Designer</span>
+            <svg class="mp-spark mp-spark--b" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.9 7.1L21 11l-7.1 1.9L12 20l-1.9-7.1L3 11l7.1-1.9L12 2z" fill="currentColor"/></svg>
+          </h1>
+          <p class="mp-tagline" data-bind="subtitulo">Nail Designer</p>
+
+          <!-- TEXTO EDITÁVEL AQUI: não existe campo no admin pra esta frase -->
+          <p class="mp-hero-pitch">
+            Você escolhe o serviço e o horário aqui mesmo, e recebe a confirmação na hora —
+            sem fila de mensagem e sem precisar criar conta.
+          </p>
+
+          <div class="mp-hero-actions">
+            <a class="mp-btn mp-btn--solid" href="agendamento.html">
+              Ver horários livres
+              <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+            </a>
+            <a class="mp-btn mp-btn--ghost" href="#servicos">Tabela de preços</a>
+          </div>
+        </div>
+
+        <div class="mp-hero-media">
+          <!-- o carrossel do app.js monta dentro de .hero-photo -->
+          <div class="hero-photo-wrap" data-bind="foto">
+            <div class="hero-photo" id="hero-photo"></div>
+          </div>
+
+          <div class="mp-slot">
+            <svg class="mp-ico mp-ico--sm mp-ico-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true" style="color:var(--color-primary);">
+              <rect x="3" y="5" width="18" height="16" rx="3"/>
+              <path d="M8 3v4M16 3v4M3 10h18" stroke-linecap="round"/>
+              <circle class="day" cx="12" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
+            </svg>
+            <div class="mp-slot-text">
+              <p>Agenda aberta esta semana</p>
+              <strong>Confirmação imediata</strong>
+            </div>
+            <a class="mp-link" href="agendamento.html">Ver</a>
+          </div>
+        </div>
+
       </div>
+    </div>
 
-      <h1 data-bind="nome">Nail Designer</h1>
-      <p class="tagline" data-bind="subtitulo">Nail Designer</p>
-
-      <a class="btn btn-primary" href="agendamento.html">
-        Agendar Horário
-      </a>
-
-      <div class="hero-photo-wrap" data-bind="foto">
-        <div class="hero-photo" id="hero-photo"></div>
-      </div>
-
-      <div class="hero-stats reveal">
-        <span class="chip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
-          Confirmação instantânea
-        </span>
-        <span class="chip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z"/></svg>
-          Materiais premium
-        </span>
-        <span class="chip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          Sem cadastro
-        </span>
+    <!-- faixa correndo -->
+    <div class="mp-marquee">
+      <div class="mp-marquee-track">
+        <div>
+          <span>Nail art autoral</span><i>◆</i>
+          <span>Alongamento</span><i>◆</i>
+          <span>Banho de gel</span><i>◆</i>
+          <span>Blindagem</span><i>◆</i>
+          <span>Confirmação na hora</span><i>◆</i>
+          <span>Materiais premium</span><i>◆</i>
+        </div>
+        <div aria-hidden="true">
+          <span>Nail art autoral</span><i>◆</i>
+          <span>Alongamento</span><i>◆</i>
+          <span>Banho de gel</span><i>◆</i>
+          <span>Blindagem</span><i>◆</i>
+          <span>Confirmação na hora</span><i>◆</i>
+          <span>Materiais premium</span><i>◆</i>
+        </div>
       </div>
     </div>
   </header>
 
-  <section id="diferenciais">
-    <div class="container">
-      <div class="section-title reveal">
-        <span>Por que agendar aqui</span>
-        <h2>Uma experiência pensada pra você</h2>
+  <!-- ===================== DIFERENCIAIS ===================== -->
+  <section class="mp-section" id="diferenciais">
+    <div class="mp-wrap">
+      <div class="mp-section-head reveal">
+        <div>
+          <p class="mp-kicker mp-kicker--light">Por que agendar aqui</p>
+          <h2>Uma experiência <span class="mp-serif">pensada pra você</span></h2>
+        </div>
       </div>
-      <div class="features-grid reveal">
-        <div class="feature-card feature-card--highlight">
-          <div class="ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h2M14 14h2M8 18h2"/></svg>
-          </div>
+
+      <div class="mp-features reveal">
+        <div class="mp-feature">
+          <svg class="mp-ico mp-ico-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="3"/>
+            <path d="M8 3v4M16 3v4M3 10h18" stroke-linecap="round"/>
+            <circle class="day" cx="12" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
+          </svg>
           <h3>Agenda em tempo real</h3>
           <p>Veja só os horários realmente disponíveis, sem risco de conflito.</p>
         </div>
-        <div class="feature-card">
-          <div class="ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
+
+        <div class="mp-feature">
+          <svg class="mp-ico mp-ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path class="tick" d="M8 12.4l2.6 2.6L16.2 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
           <h3>Confirmação na hora</h3>
           <p>Seu agendamento é confirmado imediatamente, sem espera.</p>
         </div>
-        <div class="feature-card">
-          <div class="ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z"/></svg>
-          </div>
+
+        <div class="mp-feature">
+          <svg class="mp-ico mp-ico-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <g class="body">
+              <path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6l7-3z" stroke-linejoin="round"/>
+              <path d="M9.2 12.2l1.9 1.9 3.7-4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
           <h3>Higiene e cuidado</h3>
           <p>Materiais premium e protocolos de higienização em cada etapa.</p>
         </div>
-        <div class="feature-card">
-          <div class="ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          </div>
+
+        <div class="mp-feature">
+          <svg class="mp-ico mp-ico-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 5h16v11H9l-5 4V5z" stroke-linejoin="round"/>
+            <circle class="d1" cx="9" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+            <circle class="d2" cx="12" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+            <circle class="d3" cx="15" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+          </svg>
           <h3>Direto no WhatsApp</h3>
           <p>Fale comigo a qualquer momento, sem burocracia.</p>
         </div>
@@ -93,115 +170,146 @@
     </div>
   </section>
 
-  <section id="sobre">
-    <div class="container">
-      <div class="section-title reveal">
-        <span>Quem cuida de você</span>
-        <h2>Sobre mim</h2>
+  <!-- ===================== SERVIÇOS ===================== -->
+  <section class="mp-section mp-section--tight" id="servicos">
+    <div class="mp-wrap">
+      <div class="mp-section-head reveal">
+        <div>
+          <p class="mp-kicker mp-kicker--light">O que eu faço</p>
+          <h2>Serviços</h2>
+        </div>
+        <div class="mp-head-aside">
+          <a class="mp-link" href="agendamento.html">Ver todos e agendar</a>
+        </div>
       </div>
-      <div class="about-block reveal">
-        <p data-bind="descricao">Descrição da profissional.</p>
-      </div>
-    </div>
-  </section>
 
-  <section id="servicos">
-    <div class="container">
-      <div class="section-title reveal">
-        <span>O que eu faço</span>
-        <h2>Serviços</h2>
-      </div>
+      <!-- preenchido pelo app.js com os serviços ativos do Supabase -->
       <div id="services-preview" class="reveal"></div>
-      <div style="text-align:center;margin-top:24px;" class="reveal">
-        <a class="btn btn-outline" href="agendamento.html">Ver todos os serviços</a>
+
+      <div style="text-align:center;margin-top:32px;" class="reveal">
+        <a class="mp-btn mp-btn--outline" href="agendamento.html">Ver todos os serviços</a>
       </div>
     </div>
   </section>
 
-  <section id="atendimento">
-    <div class="container">
-      <div class="section-title reveal">
-        <span>Informações</span>
-        <h2>Atendimento</h2>
+  <!-- ===================== SOBRE ===================== -->
+  <section class="mp-about" id="sobre">
+    <div class="mp-wrap">
+      <div class="mp-about-grid">
+        <!-- TROCAR PELA FOTO: <img src="assets/imagens/sobre.jpg" alt="Profissional"> -->
+        <div class="mp-about-photo">Foto da profissional</div>
+
+        <div class="mp-about-text reveal">
+          <p class="mp-kicker mp-kicker--dark">Quem cuida de você</p>
+          <h2>Sobre <span class="mp-serif">mim</span></h2>
+          <p data-bind="descricao">Descrição da profissional.</p>
+
+          <!-- Três promessas que o site já faz. Se quiser trocar por números
+               reais (tempo de atuação, nº de atendimentos), é só editar aqui. -->
+          <div class="mp-stats">
+            <div>
+              <strong>100% online</strong>
+              <span>agendamento pelo site</span>
+            </div>
+            <div>
+              <strong>Imediata</strong>
+              <span>confirmação do horário</span>
+            </div>
+            <div>
+              <strong>Sem cadastro</strong>
+              <span>não precisa criar conta</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <ul class="info-list reveal">
+    </div>
+  </section>
+
+  <!-- ===================== ATENDIMENTO ===================== -->
+  <section class="mp-section" id="atendimento">
+    <div class="mp-wrap">
+      <div class="mp-section-head reveal">
+        <div>
+          <p class="mp-kicker mp-kicker--light">Informações</p>
+          <h2>Atendimento</h2>
+        </div>
+      </div>
+
+      <ul class="mp-info reveal">
         <li>
-          <span class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          </span>
-          <div>
-            <strong>Endereço</strong><br>
-            <span data-bind="endereco">—</span>
-          </div>
+          <svg class="mp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z" stroke-linejoin="round"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <strong>Endereço</strong>
+          <span data-bind="endereco">—</span>
         </li>
         <li>
-          <span class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-          </span>
-          <div>
-            <strong>WhatsApp</strong><br>
-            <a href="#" data-href="whatsapp" target="_blank" rel="noopener">Falar agora</a>
-          </div>
+          <svg class="mp-ico mp-ico-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 5h16v11H9l-5 4V5z" stroke-linejoin="round"/>
+            <circle class="d1" cx="9" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+            <circle class="d2" cx="12" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+            <circle class="d3" cx="15" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+          </svg>
+          <strong>WhatsApp</strong>
+          <a href="#" data-href="whatsapp" target="_blank" rel="noopener">Falar agora</a>
         </li>
         <li>
-          <span class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><path d="M17.5 6.5h.01"/></svg>
-          </span>
-          <div>
-            <strong>Instagram</strong><br>
-            <a href="#" data-href="instagram" target="_blank" rel="noopener"><span data-bind="instagram">@nailstudio</span></a>
-          </div>
+          <svg class="mp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
+            <path d="M17.5 6.5h.01" stroke-linecap="round"/>
+          </svg>
+          <strong>Instagram</strong>
+          <a href="#" data-href="instagram" target="_blank" rel="noopener"><span data-bind="instagram">@nailstudio</span></a>
         </li>
       </ul>
-
     </div>
   </section>
 
-  <footer>
-    <div class="footer-decor" aria-hidden="true">
-      <div class="footer-grid"></div>
-      <span class="footer-glow g1"></span>
-      <span class="footer-glow g2"></span>
-    </div>
-
-    <div class="footer-inner">
-      <div class="footer-top">
-        <div class="footer-brand-row">
-          <span class="status-dot"></span>
-          <div class="brand" data-bind="nome">Nail Studio</div>
-        </div>
-        <p class="footer-tagline" data-bind="subtitulo">Agendamento 100% online, no seu tempo.</p>
+  <!-- ===================== CTA FINAL ===================== -->
+  <section class="mp-cta-band">
+    <div class="mp-wrap">
+      <div class="mp-cta reveal">
+        <h2>Pronta pra agendar <span class="mp-serif">seu horário?</span></h2>
+        <p>Leva menos de um minuto e confirma na hora.</p>
+        <a class="mp-btn mp-btn--solid" href="agendamento.html">
+          Agendar agora
+          <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+        </a>
       </div>
+    </div>
+  </section>
 
-      <div class="footer-cta">
-        <div class="footer-cta-inner">
-          <p>Pronta pra agendar seu horário?</p>
-          <a class="btn-shine" href="agendamento.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span>Agendar agora</span>
+  <!-- ===================== RODAPÉ ===================== -->
+  <footer class="mp-footer">
+    <div class="mp-wrap">
+      <div class="mp-footer-grid">
+        <div class="mp-footer-brand">
+          <div class="mp-display" data-bind="nome">Nail Studio</div>
+          <p data-bind="subtitulo">Agendamento 100% online, no seu tempo.</p>
+        </div>
+
+        <nav class="mp-footer-nav">
+          <a class="mp-link" href="#servicos">Serviços</a>
+          <a class="mp-link" href="#sobre">Sobre</a>
+          <a class="mp-link" href="#atendimento">Atendimento</a>
+        </nav>
+
+        <div class="mp-footer-social">
+          <a href="#" data-href="instagram" target="_blank" rel="noopener" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><path d="M17.5 6.5h.01"/></svg>
+          </a>
+          <a href="#" data-href="whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
           </a>
         </div>
       </div>
 
-      <nav class="footer-links">
-        <a href="#servicos">Serviços</a>
-        <a href="#sobre">Sobre</a>
-        <a href="#atendimento">Atendimento</a>
-      </nav>
-
-      <div class="social-row footer-social-row">
-        <a class="social-btn" href="#" data-href="instagram" target="_blank" rel="noopener" aria-label="Instagram">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><path d="M17.5 6.5h.01"/></svg>
-        </a>
-        <a class="social-btn" href="#" data-href="whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-        </a>
-      </div>
-
-      <div class="footer-bottom">
+      <div class="mp-footer-bottom">
         <p style="margin:0;">© <span class="year">2026</span> Todos os direitos reservados.</p>
-        <p style="margin:0;">© <span class="year">2026</span> Desenvolvido por <a href="https://www.instagram.com/gdmeirelless_" target="_blank" rel="noopener">Gustavo Meirelles</a></p>
-        <p style="margin-top:8px;"><a href="login.html">Área administrativa</a></p>
+        <p style="margin:0;">Desenvolvido por <a href="https://www.instagram.com/gdmeirelless_" target="_blank" rel="noopener">Gustavo Meirelles</a></p>
+        <p style="margin:0;" class="mp-admin-link"><a href="login.html">Área administrativa</a></p>
       </div>
     </div>
   </footer>
@@ -213,7 +321,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/data.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/app.js?v=3"></script>
   <script>
     document.querySelectorAll('.year').forEach((el) => (el.textContent = new Date().getFullYear()));
 
