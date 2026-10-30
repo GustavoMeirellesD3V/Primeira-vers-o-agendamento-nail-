@@ -551,7 +551,9 @@ body {
   text-transform: uppercase;
   color: #B49AA2;
 }
-.mp-about-photo img { width: 100%; height: 100%; object-fit: cover; }
+/* o recorte puxa pro alto: no celular a caixa fica larga e baixa,
+   e o corte centralizado cortaria o rosto */
+.mp-about-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
 .mp-about-text { flex: 999 1 360px; min-width: 0; }
 .mp-about-text h2 {
   font-family: 'Plus Jakarta Sans', var(--font-tech), system-ui, sans-serif;
