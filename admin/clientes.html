@@ -7,15 +7,15 @@
 <title>Clientes — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=3">
-<link rel="stylesheet" href="../css/admin.css?v=3">
+<link rel="stylesheet" href="../css/style.css?v=4">
+<link rel="stylesheet" href="../css/admin.css?v=4">
 </head>
 <body>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=3"></script>
-  <script src="../js/admin.js?v=3"></script>
+  <script src="../js/data.js?v=4"></script>
+  <script src="../js/admin.js?v=4"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Clientes", subtitle: "Histórico de clientes atendidas" });
@@ -54,11 +54,11 @@
           .map(
             (c) => `
           <tr>
-            <td><strong>${c.nome}</strong></td>
-            <td>${c.whatsapp || "—"}</td>
-            <td>${c.totalAgendamentos}</td>
-            <td>${Admin.formatDateBR(c.ultimoAgendamento)}</td>
-            <td>${c.whatsapp ? `<a class="icon-btn" href="${Admin.waLink(c.whatsapp, 'Olá ' + c.nome + '!')}" target="_blank">💬</a>` : ""}</td>
+            <td data-label="Nome"><strong>${c.nome}</strong></td>
+            <td data-label="WhatsApp">${c.whatsapp || "—"}</td>
+            <td data-label="Agendamentos">${c.totalAgendamentos}</td>
+            <td data-label="Último atendimento">${Admin.formatDateBR(c.ultimoAgendamento)}</td>
+            <td data-label="">${c.whatsapp ? `<a class="icon-btn" href="${Admin.waLink(c.whatsapp, 'Olá ' + c.nome + '!')}" target="_blank" rel="noopener">💬</a>` : ""}</td>
           </tr>`
           )
           .join("");

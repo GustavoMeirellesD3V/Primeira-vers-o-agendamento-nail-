@@ -559,3 +559,102 @@ table.simple-table td { padding: 12px 6px; border-bottom: 1px solid var(--color-
   color: var(--color-text);
   min-height: 60px;
 }
+
+/* ==================================================================
+   AJUSTES DE CELULAR — acesso a todas as páginas e conteúdo visível
+   ================================================================== */
+
+/* O botão "Mais" do menu inferior usa o mesmo visual dos links */
+.admin-bottom-nav button {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: #B6ABAF; font-size: 0.62rem; padding: 6px 4px; border-radius: 10px;
+  flex: 1; background: transparent; border: none; cursor: pointer;
+  font-family: inherit;
+}
+.admin-bottom-nav button .ic { font-size: 1.15rem; display: flex; }
+.admin-bottom-nav button .ic svg { width: 20px; height: 20px; stroke: currentColor; margin: 0 auto; display: block; }
+.admin-bottom-nav button.active { color: #fff; }
+.admin-bottom-nav button.active .ic { color: var(--color-primary); }
+
+/* Folha que abre de baixo com as demais páginas */
+.mobile-sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(32, 25, 28, 0.45);
+  z-index: 60;
+}
+.mobile-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
+  background: var(--color-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 14px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.22);
+  max-height: 72vh; overflow-y: auto;
+}
+.mobile-sheet[hidden], .mobile-sheet-backdrop[hidden] { display: none; }
+.mobile-sheet-handle {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: var(--color-border); margin: 4px auto 12px;
+}
+.mobile-sheet ul { list-style: none; margin: 0; padding: 0; }
+.mobile-sheet li + li { border-top: 1px solid var(--color-border); }
+.mobile-sheet a,
+.mobile-sheet button {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 15px 6px;
+  font-size: 0.95rem; font-weight: 600;
+  color: var(--color-text); text-decoration: none;
+  background: transparent; border: none; cursor: pointer;
+  font-family: inherit; text-align: left;
+}
+.mobile-sheet a.active { color: var(--color-primary-dark); }
+.mobile-sheet .ic { display: flex; width: 22px; flex-shrink: 0; }
+.mobile-sheet .ic svg { width: 20px; height: 20px; stroke: currentColor; }
+body.sheet-aberta { overflow: hidden; }
+
+@media (max-width: 860px) {
+  /* Abas de filtro deslizam na horizontal em vez de sair da tela */
+  .panel-header { flex-wrap: wrap; gap: 10px; }
+  .view-tabs {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .view-tabs::-webkit-scrollbar { display: none; }
+  .view-tabs button { flex: 0 0 auto; white-space: nowrap; }
+
+  /* Tabelas viram cartões empilhados, com o rótulo de cada campo */
+  table.simple-table thead { display: none; }
+  table.simple-table,
+  table.simple-table tbody,
+  table.simple-table tr,
+  table.simple-table td { display: block; width: 100%; }
+  table.simple-table tr {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  table.simple-table td {
+    border-bottom: none;
+    padding: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+  table.simple-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--color-text-soft);
+    flex-shrink: 0;
+  }
+  table.simple-table td:empty { display: none; }
+
+  /* Cabeçalho de cada dia nos Horários deixa de espremer o nome */
+  .day-config-head { flex-wrap: wrap; gap: 8px; }
+  .day-config-head .btn { margin-left: auto; }
+}

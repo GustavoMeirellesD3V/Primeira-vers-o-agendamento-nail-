@@ -31,14 +31,22 @@
     { href: "clientes.html", icon: ICONS.clientes, label: "Clientes" },
     { href: "configuracoes.html", icon: ICONS.configuracoes, label: "Configurações" },
   ];
-  // itens de destaque no menu inferior (mobile) — subconjunto para não poluir
+  // Atalhos fixos do menu inferior (mobile). O que nao cabe aqui vai para o
+  // botao "Mais", para que nenhuma pagina fique inacessivel no celular.
   const MOBILE_NAV_ITEMS = [
     { href: "dashboard.html", icon: ICONS.dashboard, label: "Início" },
     { href: "agenda.html", icon: ICONS.agenda, label: "Agenda" },
     { href: "agendamentos.html", icon: ICONS.agendamentos, label: "Agend." },
     { href: "servicos.html", icon: ICONS.servicos, label: "Serviços" },
-    { href: "configuracoes.html", icon: ICONS.configuracoes, label: "Ajustes" },
   ];
+  const ICON_MAIS =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+
+  // Tudo que nao esta nos atalhos aparece na folha "Mais".
+  function itensDoMais() {
+    const fixos = MOBILE_NAV_ITEMS.map((i) => i.href);
+    return NAV_ITEMS.filter((i) => fixos.indexOf(i.href) === -1);
+  }
 
   function currentPage() {
     return window.location.pathname.split("/").pop();
@@ -109,12 +117,51 @@
             <span class="ic">${item.icon}</span>${item.label}
           </a>`
         ).join("")}
+        <button type="button" id="mobile-mais-btn"
+                class="${itensDoMais().some((i) => i.href === active) ? "active" : ""}"
+                aria-haspopup="true" aria-expanded="false" aria-controls="mobile-mais-sheet">
+          <span class="ic">${ICON_MAIS}</span>Mais
+        </button>
       </nav>
+
+      <div class="mobile-sheet-backdrop" id="mobile-mais-backdrop" hidden></div>
+      <div class="mobile-sheet" id="mobile-mais-sheet" role="dialog" aria-label="Mais opções" hidden>
+        <div class="mobile-sheet-handle" aria-hidden="true"></div>
+        <ul>
+          ${itensDoMais()
+            .map(
+              (item) => `
+            <li><a href="${item.href}" class="${item.href === active ? "active" : ""}">
+              <span class="ic">${item.icon}</span> ${item.label}
+            </a></li>`
+            )
+            .join("")}
+          <li><button type="button" id="sheet-logout"><span class="ic">${ICONS.power}</span> Sair</button></li>
+        </ul>
+      </div>
       `
     );
 
     document.getElementById("desktop-logout").addEventListener("click", doLogout);
     document.getElementById("mobile-logout").addEventListener("click", doLogout);
+    document.getElementById("sheet-logout").addEventListener("click", doLogout);
+
+    /* ---------- folha "Mais" (mobile) ---------- */
+    const sheet = document.getElementById("mobile-mais-sheet");
+    const sheetBackdrop = document.getElementById("mobile-mais-backdrop");
+    const sheetBtn = document.getElementById("mobile-mais-btn");
+
+    function abrirSheet(abrir) {
+      sheet.hidden = !abrir;
+      sheetBackdrop.hidden = !abrir;
+      sheetBtn.setAttribute("aria-expanded", abrir ? "true" : "false");
+      document.body.classList.toggle("sheet-aberta", abrir);
+    }
+    sheetBtn.addEventListener("click", () => abrirSheet(sheet.hidden));
+    sheetBackdrop.addEventListener("click", () => abrirSheet(false));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") abrirSheet(false);
+    });
 
     return document.getElementById("admin-page-content");
   }
