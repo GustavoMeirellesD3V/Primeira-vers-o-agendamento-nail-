@@ -415,8 +415,8 @@
     /* ---------- CLIENTES PARA RETORNO ----------
        Quem nao vem ha um tempo e ainda nao remarcou. Serve para a
        notificacao de retorno no painel.
-       - conta como visita qualquer atendimento passado que nao foi
-         cancelado nem marcado como falta;
+       - so conta como visita o atendimento passado marcado como
+         confirmado ou concluido;
        - quem ja tem horario futuro marcado fica de fora, para nao
          receber mensagem a toa.
     ---------------------------------------------------------- */
@@ -426,7 +426,7 @@
       if (error) throw error;
 
       const hoje = todayISO();
-      const naoContam = ["cancelado", "faltou"];
+      const contamComoVisita = ["confirmado", "concluido"];
       const porCliente = new Map();
 
       data.forEach((row) => {
@@ -452,7 +452,7 @@
           if (a.status !== "cancelado") c.temHorarioFuturo = true;
           return;
         }
-        if (naoContam.indexOf(a.status) !== -1) return;
+        if (contamComoVisita.indexOf(a.status) === -1) return;
         if (!c.ultimaVisita || a.data > c.ultimaVisita) c.ultimaVisita = a.data;
       });
 
