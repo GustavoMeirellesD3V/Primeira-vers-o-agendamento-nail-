@@ -7,15 +7,15 @@
 <title>Configurações — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=5">
-<link rel="stylesheet" href="../css/admin.css?v=5">
+<link rel="stylesheet" href="../css/style.css?v=6">
+<link rel="stylesheet" href="../css/admin.css?v=6">
 </head>
 <body>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=5"></script>
-  <script src="../js/admin.js?v=5"></script>
+  <script src="../js/data.js?v=6"></script>
+  <script src="../js/admin.js?v=6"></script>
   <script>
     const PALETTES = [
       { primary: "#C98CA0", primaryDark: "#A96A7E", primaryLight: "#F6E4E8", nude: "#EFE1D4", gold: "#C9A24B" },
@@ -38,6 +38,7 @@
       const modeloLembrete = escaparHtml((msgsSalvas.lembrete || "").trim() || Admin.MODELO_LEMBRETE);
       const modeloRetorno = escaparHtml((msgsSalvas.retorno || "").trim() || Admin.MODELO_RETORNO);
       const diasRetorno = parseInt(msgsSalvas.retornoDias, 10) > 0 ? parseInt(msgsSalvas.retornoDias, 10) : Admin.RETORNO_DIAS_PADRAO;
+      const metaAtual = parseInt(settings.metaMensal, 10) > 0 ? parseInt(settings.metaMensal, 10) : 20;
 
       content.innerHTML = `
         <div class="panel">
@@ -140,6 +141,18 @@
             <button type="submit" class="btn btn-primary btn-block">Salvar mensagens</button>
             <button type="button" class="btn btn-outline btn-block" id="restaurar-mensagens"
                     style="margin-top:10px;">Restaurar textos padrão</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Meta de atendimentos</h2></div>
+          <form class="admin-form" id="form-meta">
+            <div class="form-group">
+              <label>Meta de atendimentos por mês</label>
+              <input type="number" id="meta-mensal" min="1" max="999" value="${metaAtual}">
+              <p class="form-hint">Aparece como barra de progresso no Dashboard. Contam os atendimentos confirmados e concluídos do mês.</p>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Salvar meta</button>
           </form>
         </div>
 
@@ -351,6 +364,28 @@
         } finally {
           btn.disabled = false;
           btn.textContent = "Salvar mensagens";
+        }
+      });
+
+      /* ---------- META DO MÊS ---------- */
+      document.getElementById("form-meta").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const valor = parseInt(document.getElementById("meta-mensal").value, 10);
+        if (!valor || valor < 1) {
+          showFeedback("Digite uma meta maior que zero.");
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+        try {
+          await DB.saveSettings({ metaMensal: valor });
+          showFeedback("Meta salva com sucesso ✓");
+        } catch (err) {
+          showFeedback("Não foi possível salvar a meta. Tente novamente.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Salvar meta";
         }
       });
 

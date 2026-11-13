@@ -712,3 +712,37 @@ body.sheet-aberta { overflow: hidden; }
   /* alvo de toque confortável no dedo */
   .notif-item .btn { min-height: 40px; display: inline-flex; align-items: center; }
 }
+
+/* ---------- Meta de atendimentos do mês ---------- */
+.meta-panel .panel-header { align-items: baseline; }
+.meta-fracao {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  line-height: 1;
+}
+.meta-fracao span { font-size: 0.95rem; color: var(--color-text-soft); font-weight: 600; }
+.meta-barra {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  overflow: hidden;
+  margin: 4px 0 10px;
+}
+.meta-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+  transition: width 0.6s ease;
+}
+.meta-rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--color-text-soft);
+}
+.meta-rodape span:first-child { font-weight: 700; color: var(--color-text); }

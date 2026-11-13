@@ -129,6 +129,7 @@
       endereco: row.endereco,
       mensagemConfirmacao: row.mensagem_confirmacao,
       mensagens: row.mensagens_whatsapp || {},
+      metaMensal: row.meta_mensal,
       tempoMinimoAgendamentoHoras: row.tempo_minimo_horas,
       diasFuturosVisiveis: row.dias_futuros_visiveis,
       cores: row.cores,
@@ -147,6 +148,7 @@
     if (obj.endereco !== undefined) out.endereco = obj.endereco;
     if (obj.mensagemConfirmacao !== undefined) out.mensagem_confirmacao = obj.mensagemConfirmacao;
     if (obj.mensagens !== undefined) out.mensagens_whatsapp = obj.mensagens;
+    if (obj.metaMensal !== undefined) out.meta_mensal = obj.metaMensal;
     if (obj.tempoMinimoAgendamentoHoras !== undefined) out.tempo_minimo_horas = obj.tempoMinimoAgendamentoHoras;
     if (obj.diasFuturosVisiveis !== undefined) out.dias_futuros_visiveis = obj.diasFuturosVisiveis;
     if (obj.cores !== undefined) out.cores = obj.cores;
@@ -410,6 +412,31 @@
         if (a.data > c.ultimoAgendamento) c.ultimoAgendamento = a.data;
       });
       return Array.from(map.values()).sort((a, b) => (a.nome > b.nome ? 1 : -1));
+    },
+
+    /* ---------- META DO MES ----------
+       Conta os atendimentos do mes corrente que valem para a meta:
+       so confirmados e concluidos, mesma regra da notificacao de retorno.
+       `mesISO` no formato "2026-11"; sem argumento usa o mes atual.
+    ---------------------------------------------------------- */
+    async getProgressoDaMeta(mesISO) {
+      assertConfigured();
+      const mes = mesISO || todayISO().slice(0, 7);
+      const { data, error } = await sb
+        .from("appointments")
+        .select("data,status")
+        .gte("data", mes + "-01")
+        .lte("data", mes + "-31");
+      if (error) throw error;
+
+      const hoje = todayISO();
+      const valem = data.filter((r) => r.status === "confirmado" || r.status === "concluido");
+      return {
+        mes,
+        total: valem.length,
+        jaAconteceram: valem.filter((r) => r.data <= hoje).length,
+        agendados: valem.filter((r) => r.data > hoje).length,
+      };
     },
 
     /* ---------- CLIENTES PARA RETORNO ----------

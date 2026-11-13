@@ -384,6 +384,11 @@
     return MODELO_CONFIRMACAO;
   }
 
+  // Configuracoes ja carregadas pelo buildShell, sem buscar de novo.
+  function settings() {
+    return cachedSettings || {};
+  }
+
   // Quantos dias sem vir disparam a notificacao de retorno.
   function retornoDias() {
     const guardados = (cachedSettings && cachedSettings.mensagens) || {};
@@ -438,6 +443,7 @@
     MODELO_RETORNO,
     RETORNO_DIAS_PADRAO,
     retornoDias,
+    settings,
     msgRetorno,
     linkRetorno,
     VARIAVEIS_DISPONIVEIS,

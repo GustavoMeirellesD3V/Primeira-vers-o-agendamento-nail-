@@ -7,14 +7,14 @@
 <title>Dashboard — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=5">
-<link rel="stylesheet" href="../css/admin.css?v=5">
+<link rel="stylesheet" href="../css/style.css?v=6">
+<link rel="stylesheet" href="../css/admin.css?v=6">
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=5"></script>
-  <script src="../js/admin.js?v=5"></script>
+  <script src="../js/data.js?v=6"></script>
+  <script src="../js/admin.js?v=6"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Dashboard", subtitle: "Visão geral do seu dia" });
@@ -28,6 +28,17 @@
         DB.getAppointments({}),
         DB.getAppointments({ date: tomorrow }),
       ]);
+
+      const META_PADRAO = 20;
+      const metaSalva = parseInt(Admin.settings().metaMensal, 10);
+      const meta = metaSalva > 0 ? metaSalva : META_PADRAO;
+      const progresso = await DB.getProgressoDaMeta();
+      const pctMeta = meta ? Math.min(100, Math.round((progresso.total / meta) * 100)) : 0;
+      const faltam = Math.max(0, meta - progresso.total);
+      const nomeDoMes = new Date(progresso.mes + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long" });
+      // quantos dias ainda restam no mes, contando hoje
+      const ultimoDia = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const diasRestantes = ultimoDia - new Date().getDate() + 1;
 
       const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
       const activeToday = appointmentsToday.filter((a) => a.status !== "cancelado");
@@ -73,6 +84,27 @@
             <div class="value">${Admin.formatCurrency(faturamentoPrevisto)}</div>
             <div class="label">Faturamento previsto</div>
           </div>
+        </div>
+
+        <div class="panel meta-panel">
+          <div class="panel-header">
+            <h2>Meta de ${nomeDoMes}</h2>
+            <span class="meta-fracao">${progresso.total}<span>/${meta}</span></span>
+          </div>
+          <div class="meta-barra" role="progressbar" aria-valuenow="${pctMeta}" aria-valuemin="0" aria-valuemax="100">
+            <span style="width:${pctMeta}%"></span>
+          </div>
+          <div class="meta-rodape">
+            <span>${pctMeta}% da meta</span>
+            <span>${
+              faltam === 0
+                ? "Meta batida! 🎉"
+                : `Faltam ${faltam} ${faltam === 1 ? "atendimento" : "atendimentos"} · ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} no mês`
+            }</span>
+          </div>
+          <p class="form-hint" style="margin:10px 0 0;">
+            ${progresso.jaAconteceram} já aconteceram e ${progresso.agendados} estão agendados. Contam confirmados e concluídos.
+          </p>
         </div>
 
         <div class="panel" id="reminder-panel">
