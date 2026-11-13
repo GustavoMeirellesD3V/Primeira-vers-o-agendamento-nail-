@@ -720,6 +720,8 @@ body.sheet-aberta { overflow: hidden; }
    como esmalte até a fração da meta — o preenchimento é o próprio dado.
    ================================================================== */
 .meta {
+  /* superfície do esmalte: um período de onda por ladrilho, repetido na horizontal */
+  --onda: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 200' preserveAspectRatio='none'%3E%3Cpath d='M0,15 C25,3 75,27 100,15 L100,200 L0,200 Z' fill='%23000'/%3E%3C/svg%3E");
   position: relative;
   overflow: hidden;
   background: #2B2529;
@@ -794,22 +796,7 @@ body.sheet-aberta { overflow: hidden; }
   padding-right: 4px;
 }
 .meta__numero-base { color: rgba(255, 255, 255, 0.18); }
-/* linha do nível, como a superfície do esmalte no vidro */
-.meta__numero::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--preenchido, 0%);
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), rgba(246, 228, 232, 0.95));
-  box-shadow: 0 0 12px 1px rgba(201, 140, 160, 0.75);
-  animation: meta-nivel 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
-}
-@keyframes meta-nivel {
-  from { bottom: 0; }
-}
+
 .meta__numero-cheio {
   position: absolute;
   inset: 0;
@@ -823,6 +810,31 @@ body.sheet-aberta { overflow: hidden; }
 }
 @keyframes meta-encher {
   from { clip-path: inset(100% 0 0 0); }
+}
+
+/* O esmalte sobe com a superfície ondulada até a altura da meta.
+   O corte reto acima fica como reserva para navegador sem máscara.
+   A posição vertical da máscara sai de (preenchido - 85%) porque a crista
+   da onda fica a 15% do topo do ladrilho, e o ladrilho tem o dobro da altura. */
+@supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
+  .meta__numero-cheio {
+    clip-path: none;
+    -webkit-mask-image: var(--onda);
+    mask-image: var(--onda);
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    -webkit-mask-size: 34% 200%;
+    mask-size: 34% 200%;
+    -webkit-mask-position: -150% calc(var(--preenchido, 0%) - 85%);
+    mask-position: -150% calc(var(--preenchido, 0%) - 85%);
+    animation: meta-onda 2s cubic-bezier(0.25, 0.9, 0.3, 1) 0.1s backwards;
+  }
+}
+@keyframes meta-onda {
+  from {
+    -webkit-mask-position: 0% -85%;
+    mask-position: 0% -85%;
+  }
 }
 .meta__alvo {
   font-size: 1rem;
@@ -850,10 +862,6 @@ body.sheet-aberta { overflow: hidden; }
   -webkit-background-clip: text;
   background-clip: text;
 }
-.meta--batida .meta__numero::after {
-  background: linear-gradient(90deg, transparent, var(--color-gold), #F6E7C4);
-  box-shadow: 0 0 12px 1px rgba(201, 162, 75, 0.75);
-}
 .meta--batida .meta__ritmo {
   background: rgba(201, 162, 75, 0.22);
   color: #F0DCA8;
@@ -867,6 +875,5 @@ body.sheet-aberta { overflow: hidden; }
   .meta__contexto { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .meta__numero-cheio,
-  .meta__numero::after { animation: none; }
+  .meta__numero-cheio { animation: none; }
 }
