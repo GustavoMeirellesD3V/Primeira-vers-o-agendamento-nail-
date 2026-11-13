@@ -823,17 +823,40 @@ body.sheet-aberta { overflow: hidden; }
     mask-image: var(--onda);
     -webkit-mask-repeat: repeat-x;
     mask-repeat: repeat-x;
-    -webkit-mask-size: 34% 200%;
-    mask-size: 34% 200%;
+    /* 33.333% faz o ladrilho caber 3x na largura, e aí cada 50% de
+       deslocamento anda exatamente um ladrilho — o loop fecha sem salto. */
+    -webkit-mask-size: 33.333% 200%;
+    mask-size: 33.333% 200%;
     -webkit-mask-position: -150% calc(var(--preenchido, 0%) - 85%);
     mask-position: -150% calc(var(--preenchido, 0%) - 85%);
-    animation: meta-onda 2s cubic-bezier(0.25, 0.9, 0.3, 1) 0.1s backwards;
+    /* a segunda animação começa onde a primeira para, então a onda
+       sobe até a meta e segue balançando sem emenda */
+    animation:
+      meta-onda 2s cubic-bezier(0.25, 0.9, 0.3, 1) 0.1s backwards,
+      meta-balanco 7s linear 2.1s infinite;
   }
 }
 @keyframes meta-onda {
   from {
     -webkit-mask-position: 0% -85%;
     mask-position: 0% -85%;
+  }
+}
+
+/* Balanço contínuo: anda 4 ladrilhos por volta, com o nível subindo e
+   descendo 1,5% no meio do caminho para o líquido não parecer parado. */
+@keyframes meta-balanco {
+  0% {
+    -webkit-mask-position: -150% calc(var(--preenchido, 0%) - 85%);
+    mask-position: -150% calc(var(--preenchido, 0%) - 85%);
+  }
+  50% {
+    -webkit-mask-position: -250% calc(var(--preenchido, 0%) - 83.5%);
+    mask-position: -250% calc(var(--preenchido, 0%) - 83.5%);
+  }
+  100% {
+    -webkit-mask-position: -350% calc(var(--preenchido, 0%) - 85%);
+    mask-position: -350% calc(var(--preenchido, 0%) - 85%);
   }
 }
 .meta__alvo {
