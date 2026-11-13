@@ -713,36 +713,160 @@ body.sheet-aberta { overflow: hidden; }
   .notif-item .btn { min-height: 40px; display: inline-flex; align-items: center; }
 }
 
-/* ---------- Meta de atendimentos do mês ---------- */
-.meta-panel .panel-header { align-items: baseline; }
-.meta-fracao {
+/* ==================================================================
+   META DO MÊS
+   O único cartão escuro do painel: é o momento em que o sistema deixa
+   de listar tarefas e mostra como o mês está indo. O número se enche
+   como esmalte até a fração da meta — o preenchimento é o próprio dado.
+   ================================================================== */
+.meta {
+  position: relative;
+  overflow: hidden;
+  background: #2B2529;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-md) calc(var(--space-md) + 2px);
+  margin-bottom: var(--space-lg);
+  color: #fff;
+}
+/* brilho quente atrás do número, como a luz de uma cabine de manicure */
+.meta::before {
+  content: "";
+  position: absolute;
+  left: -10%;
+  bottom: -70%;
+  width: 70%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(201, 140, 160, 0.32), transparent 68%);
+  pointer-events: none;
+}
+.meta > * { position: relative; }
+
+.meta__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+.meta__topo h2 {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+.meta__ritmo {
+  font-size: 0.74rem;
   font-weight: 700;
-  color: var(--color-primary-dark);
+  letter-spacing: 0.02em;
+  color: #E7D3D9;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+
+.meta__corpo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.meta__contagem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
   line-height: 1;
 }
-.meta-fracao span { font-size: 0.95rem; color: var(--color-text-soft); font-weight: 600; }
-.meta-barra {
-  height: 12px;
-  border-radius: 999px;
-  background: var(--color-primary-light);
-  overflow: hidden;
-  margin: 4px 0 10px;
-}
-.meta-barra > span {
+/* duas cópias sobrepostas: a de baixo é o contorno, a de cima é o esmalte */
+.meta__numero {
+  position: relative;
   display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
-  transition: width 0.6s ease;
+  font-family: var(--font-body);
+  font-size: clamp(4.6rem, 20vw, 6.2rem);
+  font-weight: 800;
+  line-height: 0.85;
+  letter-spacing: -0.045em;
+  padding-right: 4px;
 }
-.meta-rodape {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 0.82rem;
-  color: var(--color-text-soft);
+.meta__numero-base { color: rgba(255, 255, 255, 0.18); }
+/* linha do nível, como a superfície do esmalte no vidro */
+.meta__numero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--preenchido, 0%);
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), rgba(246, 228, 232, 0.95));
+  box-shadow: 0 0 12px 1px rgba(201, 140, 160, 0.75);
+  animation: meta-nivel 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
 }
-.meta-rodape span:first-child { font-weight: 700; color: var(--color-text); }
+@keyframes meta-nivel {
+  from { bottom: 0; }
+}
+.meta__numero-cheio {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(170deg, #F6E4E8, var(--color-primary) 55%, var(--color-primary-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* mostra só a parte de baixo, na altura da meta cumprida */
+  clip-path: inset(calc(100% - var(--preenchido, 0%)) 0 0 0);
+  animation: meta-encher 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
+}
+@keyframes meta-encher {
+  from { clip-path: inset(100% 0 0 0); }
+}
+.meta__alvo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.meta__contexto { text-align: right; flex: 1; min-width: 150px; }
+.meta__falta {
+  margin: 0 0 3px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.meta__detalhe {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* meta atingida: o esmalte vira dourado */
+.meta--batida .meta__numero-cheio {
+  background: linear-gradient(170deg, #F6E7C4, var(--color-gold) 60%, #A8822F);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.meta--batida .meta__numero::after {
+  background: linear-gradient(90deg, transparent, var(--color-gold), #F6E7C4);
+  box-shadow: 0 0 12px 1px rgba(201, 162, 75, 0.75);
+}
+.meta--batida .meta__ritmo {
+  background: rgba(201, 162, 75, 0.22);
+  color: #F0DCA8;
+}
+.meta--batida::before {
+  background: radial-gradient(circle, rgba(201, 162, 75, 0.38), transparent 68%);
+}
+
+@media (max-width: 540px) {
+  .meta__corpo { align-items: flex-start; }
+  .meta__contexto { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meta__numero-cheio,
+  .meta__numero::after { animation: none; }
+}

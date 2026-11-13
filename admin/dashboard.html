@@ -7,14 +7,14 @@
 <title>Dashboard — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=7">
-<link rel="stylesheet" href="../css/admin.css?v=7">
+<link rel="stylesheet" href="../css/style.css?v=8">
+<link rel="stylesheet" href="../css/admin.css?v=8">
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=7"></script>
-  <script src="../js/admin.js?v=7"></script>
+  <script src="../js/data.js?v=8"></script>
+  <script src="../js/admin.js?v=8"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Dashboard", subtitle: "Visão geral do seu dia" });
@@ -38,7 +38,14 @@
       const nomeDoMes = new Date(progresso.mes + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long" });
       // quantos dias ainda restam no mes, contando hoje
       const ultimoDia = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-      const diasRestantes = ultimoDia - new Date().getDate() + 1;
+      const diaDeHoje = new Date().getDate();
+      const diasRestantes = ultimoDia - diaDeHoje + 1;
+
+      // Compara o quanto da meta ja foi feito com o quanto do mes ja passou.
+      // Dizer so a porcentagem nao responde a pergunta que importa: da tempo?
+      const pctMes = Math.round((diaDeHoje / ultimoDia) * 100);
+      const ritmo =
+        pctMeta >= 100 ? "Meta batida" : pctMeta >= pctMes + 8 ? "Adiantada para o mês" : pctMeta >= pctMes - 8 ? "No ritmo do mês" : "Atrás do ritmo do mês";
 
       const serviceMap = Object.fromEntries(services.map((s) => [s.id, s]));
       const activeToday = appointmentsToday.filter((a) => a.status !== "cancelado");
@@ -86,26 +93,37 @@
           </div>
         </div>
 
-        <div class="panel meta-panel">
-          <div class="panel-header">
+        <section class="meta ${pctMeta >= 100 ? "meta--batida" : ""}" aria-label="Meta de ${nomeDoMes}">
+          <div class="meta__topo">
             <h2>Meta de ${nomeDoMes}</h2>
-            <span class="meta-fracao">${progresso.total}<span>/${meta}</span></span>
+            <span class="meta__ritmo">${ritmo}</span>
           </div>
-          <div class="meta-barra" role="progressbar" aria-valuenow="${pctMeta}" aria-valuemin="0" aria-valuemax="100">
-            <span style="width:${pctMeta}%"></span>
+
+          <div class="meta__corpo">
+            <p class="meta__contagem"
+               role="progressbar" aria-valuenow="${progresso.total}" aria-valuemin="0" aria-valuemax="${meta}"
+               aria-label="${progresso.total} de ${meta} atendimentos">
+              <span class="meta__numero" style="--preenchido:${Math.min(100, pctMeta)}%">
+                <span class="meta__numero-base" aria-hidden="true">${progresso.total}</span>
+                <span class="meta__numero-cheio" aria-hidden="true">${progresso.total}</span>
+              </span>
+              <span class="meta__alvo">de ${meta}</span>
+            </p>
+
+            <div class="meta__contexto">
+              <p class="meta__falta">${
+                faltam === 0
+                  ? "Você chegou lá 🎉"
+                  : `Faltam ${faltam} ${faltam === 1 ? "atendimento" : "atendimentos"}`
+              }</p>
+              <p class="meta__detalhe">${
+                faltam === 0
+                  ? `${progresso.jaAconteceram} já atendidos e ${progresso.agendados} na agenda`
+                  : `${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} pela frente, com ${progresso.jaAconteceram} já atendidos e ${progresso.agendados} na agenda`
+              }</p>
+            </div>
           </div>
-          <div class="meta-rodape">
-            <span>${pctMeta}% da meta</span>
-            <span>${
-              faltam === 0
-                ? "Meta batida! 🎉"
-                : `Faltam ${faltam} ${faltam === 1 ? "atendimento" : "atendimentos"} · ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} no mês`
-            }</span>
-          </div>
-          <p class="form-hint" style="margin:10px 0 0;">
-            ${progresso.jaAconteceram} já aconteceram e ${progresso.agendados} estão agendados. Contam confirmados e concluídos.
-          </p>
-        </div>
+        </section>
 
         <div class="panel" id="reminder-panel">
           <div class="panel-header">
