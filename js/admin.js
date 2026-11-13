@@ -183,37 +183,127 @@
       if (e.key === "Escape") abrirNotif(false);
     });
 
+    /* Quem ja foi chamada some da lista. Fica guardado no proprio
+       aparelho, com a data: passados 14 dias, se a cliente continuar
+       sem vir, ela volta a aparecer — senao a lista secaria sozinha. */
+    const CHAMADAS_KEY = "retorno-chamadas";
+    const DIAS_ATE_VOLTAR = 14;
+
+    function chamadas() {
+      try {
+        return JSON.parse(localStorage.getItem(CHAMADAS_KEY)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+    function marcarChamada(chave) {
+      try {
+        const atual = chamadas();
+        atual[chave] = Date.now();
+        localStorage.setItem(CHAMADAS_KEY, JSON.stringify(atual));
+      } catch (e) {
+        /* se o navegador bloquear o armazenamento, só não lembra depois */
+      }
+    }
+    function foiChamadaRecentemente(chave, registro) {
+      if (!registro[chave]) return false;
+      return Date.now() - registro[chave] < DIAS_ATE_VOLTAR * 24 * 60 * 60 * 1000;
+    }
+
+    function atualizarContador(quantas) {
+      if (!quantas) {
+        notifBadge.hidden = true;
+        return;
+      }
+      notifBadge.textContent = quantas > 9 ? "9+" : String(quantas);
+      notifBadge.hidden = false;
+    }
+
+    function limparChamadas() {
+      try {
+        localStorage.removeItem(CHAMADAS_KEY);
+      } catch (e) {
+        /* sem armazenamento, nao ha o que limpar */
+      }
+    }
+
     // carrega depois da tela aparecer, para nao atrasar a pagina
     (async () => {
       try {
         const dias = retornoDias();
-        const clientes = await DB.getClientesParaRetorno(dias);
-        if (clientes.length) {
-          notifBadge.textContent = clientes.length > 9 ? "9+" : String(clientes.length);
-          notifBadge.hidden = false;
+        const todas = await DB.getClientesParaRetorno(dias);
+
+        function visiveis() {
+          const registro = chamadas();
+          return todas.filter((c) => !foiChamadaRecentemente(c.chave, registro));
         }
-        if (!clientes.length) {
-          notifLista.innerHTML = `<div class="empty-hint">Ninguém está há mais de ${dias} dias sem vir. 🎉</div>`;
-          return;
+
+        function desenhar() {
+          const clientes = visiveis();
+          atualizarContador(clientes.length);
+
+          const guardadas = Object.keys(chamadas()).length;
+          const rodape = guardadas
+            ? `<button type="button" class="notif-restaurar" id="notif-restaurar">
+                 Restaurar ${guardadas} ${guardadas === 1 ? "dispensada" : "dispensadas"}
+               </button>`
+            : "";
+
+          if (!clientes.length) {
+            notifLista.innerHTML =
+              `<div class="empty-hint">Nenhuma cliente para chamar agora. 🎉</div>` + rodape;
+          } else {
+            notifLista.innerHTML =
+              `<p class="form-hint notif-sub">Sem vir há ${dias} dias ou mais, e ainda sem horário marcado.</p>` +
+              clientes
+                .map(
+                  (c) => `
+              <div class="notif-item" data-chave="${c.chave}">
+                <div class="notif-item__info">
+                  <strong>${c.nome}</strong>
+                  <span>${c.diasSemVir} dias, última visita em ${formatDateBR(c.ultimaVisita)}</span>
+                </div>
+                ${
+                  c.whatsapp
+                    ? `<a class="btn btn-outline btn-sm" data-acao href="${linkRetorno(c)}" target="_blank" rel="noopener">Chamar</a>`
+                    : `<button type="button" class="btn btn-outline btn-sm" data-acao>Sem WhatsApp</button>`
+                }
+                <button type="button" class="notif-dispensar" data-dispensar
+                        title="Dispensar" aria-label="Dispensar ${c.nome}">&times;</button>
+              </div>`
+                )
+                .join("") +
+              rodape;
+          }
+
+          ligarAcoes();
         }
-        notifLista.innerHTML =
-          `<p class="form-hint notif-sub">Sem vir há ${dias} dias ou mais, e ainda sem horário marcado.</p>` +
-          clientes
-            .map(
-              (c) => `
-          <div class="notif-item">
-            <div class="notif-item__info">
-              <strong>${c.nome}</strong>
-              <span>${c.diasSemVir} dias · última visita ${formatDateBR(c.ultimaVisita)}</span>
-            </div>
-            ${
-              c.whatsapp
-                ? `<a class="btn btn-outline btn-sm" href="${linkRetorno(c)}" target="_blank" rel="noopener">Chamar</a>`
-                : `<span class="form-hint" style="margin:0;">sem WhatsApp</span>`
-            }
-          </div>`
-            )
-            .join("");
+
+        function ligarAcoes() {
+          notifLista.querySelectorAll(".notif-item").forEach((item) => {
+            // chamar pelo WhatsApp e dispensar tiram a cliente da lista do mesmo jeito;
+            // muda so a intencao de quem clicou
+            const sair = () => {
+              marcarChamada(item.dataset.chave);
+              item.classList.add("notif-item--saindo");
+              setTimeout(desenhar, 240);
+            };
+            const acao = item.querySelector("[data-acao]");
+            const dispensar = item.querySelector("[data-dispensar]");
+            if (acao) acao.addEventListener("click", sair);
+            if (dispensar) dispensar.addEventListener("click", sair);
+          });
+
+          const restaurar = document.getElementById("notif-restaurar");
+          if (restaurar) {
+            restaurar.addEventListener("click", () => {
+              limparChamadas();
+              desenhar();
+            });
+          }
+        }
+
+        desenhar();
       } catch (err) {
         notifLista.innerHTML = `<div class="empty-hint">Não foi possível carregar agora.</div>`;
       }
