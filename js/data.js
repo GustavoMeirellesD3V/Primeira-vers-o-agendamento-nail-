@@ -422,11 +422,17 @@
     async getProgressoDaMeta(mesISO) {
       assertConfigured();
       const mes = mesISO || todayISO().slice(0, 7);
+      // limite superior = primeiro dia do mes seguinte, porque nem todo mes
+      // tem dia 31 e o banco rejeita datas como "2026-11-31"
+      const [ano, numMes] = mes.split("-").map(Number);
+      const inicioProximoMes =
+        numMes === 12 ? `${ano + 1}-01-01` : `${ano}-${String(numMes + 1).padStart(2, "0")}-01`;
+
       const { data, error } = await sb
         .from("appointments")
         .select("data,status")
         .gte("data", mes + "-01")
-        .lte("data", mes + "-31");
+        .lt("data", inicioProximoMes);
       if (error) throw error;
 
       const hoje = todayISO();
