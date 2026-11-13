@@ -470,6 +470,7 @@
         const chave = tel || (a.clienteNome || "").trim().toLowerCase();
         if (!porCliente.has(chave)) {
           porCliente.set(chave, {
+            chave,
             nome: a.clienteNome,
             whatsapp: a.clienteWhatsapp,
             email: a.clienteEmail,
