@@ -658,3 +658,57 @@ body.sheet-aberta { overflow: hidden; }
   .day-config-head { flex-wrap: wrap; gap: 8px; }
   .day-config-head .btn { margin-left: auto; }
 }
+
+/* ---------- Notificação de clientes para retorno ---------- */
+.notif-wrap { position: relative; }
+.topbar-bell { border: 1px solid var(--color-border); cursor: pointer; padding: 0; }
+.notif-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-primary-dark); color: #fff;
+  font-size: 0.66rem; font-weight: 800; line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--color-bg, #fbf8f6);
+}
+.notif-badge[hidden] { display: none; }
+
+.notif-panel {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: min(330px, calc(100vw - 32px));
+  max-height: 60vh; overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 14px 38px -12px rgba(43, 37, 41, 0.3);
+  padding: 12px 14px 8px;
+  z-index: 70;
+  text-align: left;
+}
+.notif-panel[hidden] { display: none; }
+.notif-panel__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 4px;
+}
+.notif-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; color: var(--color-text-soft);
+  padding: 0 4px;
+}
+.notif-sub { margin: 0 0 8px; }
+.notif-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 9px 0;
+  border-top: 1px solid var(--color-border);
+}
+.notif-item__info { min-width: 0; }
+.notif-item__info strong { display: block; font-size: 0.88rem; }
+.notif-item__info span { font-size: 0.76rem; color: var(--color-text-soft); }
+.notif-item .btn { flex-shrink: 0; padding: 7px 14px; font-size: 0.75rem; }
+
+/* No celular o painel se estica até quase a largura da tela */
+@media (max-width: 860px) {
+  .notif-panel { width: min(330px, calc(100vw - 24px)); max-height: 66vh; }
+  /* alvo de toque confortável no dedo */
+  .notif-item .btn { min-height: 40px; display: inline-flex; align-items: center; }
+}

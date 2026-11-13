@@ -102,7 +102,19 @@
               ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ""}
             </div>
             <div class="topbar-right">
-              <span class="topbar-bell" title="Notificações">${ICONS.bell}<span class="dot"></span></span>
+              <div class="notif-wrap">
+                <button type="button" class="topbar-bell" id="notif-btn" title="Clientes para retorno"
+                        aria-haspopup="true" aria-expanded="false">
+                  ${ICONS.bell}<span class="notif-badge" id="notif-badge" hidden>0</span>
+                </button>
+                <div class="notif-panel" id="notif-panel" role="dialog" aria-label="Clientes para retorno" hidden>
+                  <div class="notif-panel__head">
+                    <strong>Clientes para retorno</strong>
+                    <button type="button" class="notif-close" id="notif-close" aria-label="Fechar">&times;</button>
+                  </div>
+                  <div id="notif-lista"><div class="empty-hint">Carregando…</div></div>
+                </div>
+              </div>
               <div id="admin-topbar-actions"></div>
             </div>
           </div>
@@ -145,6 +157,67 @@
     document.getElementById("desktop-logout").addEventListener("click", doLogout);
     document.getElementById("mobile-logout").addEventListener("click", doLogout);
     document.getElementById("sheet-logout").addEventListener("click", doLogout);
+
+    /* ---------- notificação de clientes para retorno ----------
+       Lista quem nao vem ha um tempo e ainda nao remarcou, com um
+       botao que abre o WhatsApp com a mensagem pronta.
+    ------------------------------------------------------------- */
+    const notifBtn = document.getElementById("notif-btn");
+    const notifPanel = document.getElementById("notif-panel");
+    const notifBadge = document.getElementById("notif-badge");
+    const notifLista = document.getElementById("notif-lista");
+
+    function abrirNotif(abrir) {
+      notifPanel.hidden = !abrir;
+      notifBtn.setAttribute("aria-expanded", abrir ? "true" : "false");
+    }
+    notifBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirNotif(notifPanel.hidden);
+    });
+    document.getElementById("notif-close").addEventListener("click", () => abrirNotif(false));
+    document.addEventListener("click", (e) => {
+      if (!notifPanel.hidden && !notifPanel.contains(e.target)) abrirNotif(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") abrirNotif(false);
+    });
+
+    // carrega depois da tela aparecer, para nao atrasar a pagina
+    (async () => {
+      try {
+        const dias = retornoDias();
+        const clientes = await DB.getClientesParaRetorno(dias);
+        if (clientes.length) {
+          notifBadge.textContent = clientes.length > 9 ? "9+" : String(clientes.length);
+          notifBadge.hidden = false;
+        }
+        if (!clientes.length) {
+          notifLista.innerHTML = `<div class="empty-hint">Ninguém está há mais de ${dias} dias sem vir. 🎉</div>`;
+          return;
+        }
+        notifLista.innerHTML =
+          `<p class="form-hint notif-sub">Sem vir há ${dias} dias ou mais, e ainda sem horário marcado.</p>` +
+          clientes
+            .map(
+              (c) => `
+          <div class="notif-item">
+            <div class="notif-item__info">
+              <strong>${c.nome}</strong>
+              <span>${c.diasSemVir} dias · última visita ${formatDateBR(c.ultimaVisita)}</span>
+            </div>
+            ${
+              c.whatsapp
+                ? `<a class="btn btn-outline btn-sm" href="${linkRetorno(c)}" target="_blank" rel="noopener">Chamar</a>`
+                : `<span class="form-hint" style="margin:0;">sem WhatsApp</span>`
+            }
+          </div>`
+            )
+            .join("");
+      } catch (err) {
+        notifLista.innerHTML = `<div class="empty-hint">Não foi possível carregar agora.</div>`;
+      }
+    })();
 
     /* ---------- folha "Mais" (mobile) ---------- */
     const sheet = document.getElementById("mobile-mais-sheet");
@@ -260,7 +333,17 @@
     "Consegue vir no horário? Se precisar remarcar, é só me falar por aqui.",
   ].join("\n");
 
-  const VARIAVEIS_DISPONIVEIS = ["cliente", "servico", "data", "horario", "estudio", "endereco"];
+  const MODELO_RETORNO = [
+    "Oi, {cliente}! Aqui é do {estudio}.",
+    "",
+    "Faz {dias} dias que você não passa aqui e eu já estou com saudade 💅",
+    "",
+    "Quer marcar um horário? Me diz o melhor dia para você que eu encaixo.",
+  ].join("\n");
+
+  const RETORNO_DIAS_PADRAO = 21;
+
+  const VARIAVEIS_DISPONIVEIS = ["cliente", "servico", "data", "horario", "estudio", "endereco", "dias"];
 
   // Troca {cliente}, {servico}... pelos valores reais. Se um valor estiver
   // vazio (ex.: endereço em branco), a linha inteira sai do texto.
@@ -296,7 +379,30 @@
     const guardados = (cachedSettings && cachedSettings.mensagens) || {};
     const texto = (guardados[tipo] || "").trim();
     if (texto) return texto;
-    return tipo === "lembrete" ? MODELO_LEMBRETE : MODELO_CONFIRMACAO;
+    if (tipo === "lembrete") return MODELO_LEMBRETE;
+    if (tipo === "retorno") return MODELO_RETORNO;
+    return MODELO_CONFIRMACAO;
+  }
+
+  // Quantos dias sem vir disparam a notificacao de retorno.
+  function retornoDias() {
+    const guardados = (cachedSettings && cachedSettings.mensagens) || {};
+    const n = parseInt(guardados.retornoDias, 10);
+    return n > 0 ? n : RETORNO_DIAS_PADRAO;
+  }
+
+  function msgRetorno(cliente) {
+    const modelo = modeloSalvo("retorno");
+    return aplicarVariaveis(modelo, {
+      cliente: primeiroNome(cliente.nome),
+      dias: String(cliente.diasSemVir || ""),
+      estudio: (cachedSettings && cachedSettings.nome) || "",
+      endereco: (cachedSettings && cachedSettings.endereco) || "",
+    });
+  }
+
+  function linkRetorno(cliente) {
+    return waLink(cliente.whatsapp, msgRetorno(cliente));
   }
 
   function msgConfirmacao(a, servico) {
@@ -329,6 +435,11 @@
     linkLembrete,
     MODELO_CONFIRMACAO,
     MODELO_LEMBRETE,
+    MODELO_RETORNO,
+    RETORNO_DIAS_PADRAO,
+    retornoDias,
+    msgRetorno,
+    linkRetorno,
     VARIAVEIS_DISPONIVEIS,
     aplicarVariaveis,
     NAV_ITEMS,

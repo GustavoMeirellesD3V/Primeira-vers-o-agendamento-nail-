@@ -412,6 +412,63 @@
       return Array.from(map.values()).sort((a, b) => (a.nome > b.nome ? 1 : -1));
     },
 
+    /* ---------- CLIENTES PARA RETORNO ----------
+       Quem nao vem ha um tempo e ainda nao remarcou. Serve para a
+       notificacao de retorno no painel.
+       - conta como visita qualquer atendimento passado que nao foi
+         cancelado nem marcado como falta;
+       - quem ja tem horario futuro marcado fica de fora, para nao
+         receber mensagem a toa.
+    ---------------------------------------------------------- */
+    async getClientesParaRetorno(diasMin = 21) {
+      assertConfigured();
+      const { data, error } = await sb.from("appointments").select("*");
+      if (error) throw error;
+
+      const hoje = todayISO();
+      const naoContam = ["cancelado", "faltou"];
+      const porCliente = new Map();
+
+      data.forEach((row) => {
+        const a = mapAppointmentFromDb(row);
+        // agrupa pelo telefone so com digitos (sem o 55), para a mesma pessoa
+        // nao aparecer duas vezes por ter sido salva com formatos diferentes
+        const tel = (a.clienteWhatsapp || "").replace(/\D/g, "").replace(/^55/, "");
+        const chave = tel || (a.clienteNome || "").trim().toLowerCase();
+        if (!porCliente.has(chave)) {
+          porCliente.set(chave, {
+            nome: a.clienteNome,
+            whatsapp: a.clienteWhatsapp,
+            email: a.clienteEmail,
+            ultimaVisita: null,
+            temHorarioFuturo: false,
+          });
+        }
+        const c = porCliente.get(chave);
+        // o nome mais recente prevalece, caso ela tenha corrigido depois
+        if (a.data >= (c.ultimaVisita || "")) c.nome = a.clienteNome || c.nome;
+
+        if (a.data > hoje) {
+          if (a.status !== "cancelado") c.temHorarioFuturo = true;
+          return;
+        }
+        if (naoContam.indexOf(a.status) !== -1) return;
+        if (!c.ultimaVisita || a.data > c.ultimaVisita) c.ultimaVisita = a.data;
+      });
+
+      const umDia = 24 * 60 * 60 * 1000;
+      const base = new Date(hoje + "T00:00:00").getTime();
+
+      return Array.from(porCliente.values())
+        .filter((c) => c.ultimaVisita && !c.temHorarioFuturo)
+        .map((c) => ({
+          ...c,
+          diasSemVir: Math.round((base - new Date(c.ultimaVisita + "T00:00:00").getTime()) / umDia),
+        }))
+        .filter((c) => c.diasSemVir >= diasMin)
+        .sort((a, b) => b.diasSemVir - a.diasSemVir);
+    },
+
     /* ---------- REGRAS DE DISPONIBILIDADE ---------- */
     async isDateAvailable(iso) {
       const schedule = await DB.getSchedule();
