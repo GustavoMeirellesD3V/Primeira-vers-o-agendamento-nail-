@@ -1,0 +1,66 @@
+/* ==================================================================
+   NATAL — camada sazonal da home
+   ------------------------------------------------------------------
+   Arquivo separado de propósito: para tirar a decoração depois das
+   festas, basta remover a linha <link> deste arquivo no index.html
+   e os dois blocos marcados com "NATAL" lá dentro.
+   ================================================================== */
+
+/* o hero precisa ser referência para a neve, que é absoluta por cima */
+.mp-hero {
+  position: relative;
+}
+/* o conteúdo fica acima da neve */
+.mp-hero > .mp-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* o gorro sobe acima da linha do título; sem esta folga ele encosta
+   no selo "Agendamento 100% online" que fica logo acima */
+.mp-hero h1 {
+  margin-top: 0.5em;
+}
+
+/* ---------- neve ---------- */
+.natal-neve {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.natal-neve svg {
+  position: absolute;
+  top: 0;
+  animation: natal-cai 13s linear infinite;
+}
+
+@keyframes natal-cai {
+  0%   { transform: translate(0, -40px) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translate(26px, 820px) rotate(180deg); opacity: 0; }
+}
+
+/* ---------- gorro no C do nome ----------
+   Fica solto dentro do h1, não dentro do <span data-bind="nome">,
+   porque o app.js reescreve o texto desse span e apagaria o gorro.
+   As medidas estão em em para acompanhar o tamanho do título,
+   que é fluido (clamp) entre o celular e o desktop.                */
+.natal-gorro {
+  position: absolute;
+  left: -0.2em;
+  top: -0.555em;
+  width: 0.93em;
+  height: 0.7em;
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+
+/* a estrelinha da esquerda ocupa o mesmo lugar do gorro */
+.mp-spark--a { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .natal-neve svg { animation: none; opacity: 0.8; }
+}
