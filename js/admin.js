@@ -509,14 +509,27 @@
     const valido = marcado > 0 && (marcado === pctNovas || marcado === pctAntigas);
     const aplicado = valido ? marcado : 0;
 
+    // O desconto vale pela data do atendimento. Um agendamento marcado
+    // para fora do periodo nao deveria ter desconto nenhum.
+    const dentroDoPeriodo = DB.promoValeEm(
+      { inicio: promo.inicio || null, fim: promo.fim || null },
+      a.data
+    );
+
     const antiga = eraAntigaAoAgendar(a, todos);
-    const esperado = antiga === null ? aplicado : antiga ? pctAntigas : pctNovas;
+    const esperado = !dentroDoPeriodo
+      ? 0
+      : antiga === null
+      ? aplicado
+      : antiga
+      ? pctAntigas
+      : pctNovas;
 
     return {
       base,
       pct: aplicado,
       final: Math.round(base * (100 - aplicado)) / 100,
-      divergente: antiga !== null && aplicado !== esperado,
+      divergente: (antiga !== null || !dentroDoPeriodo) && aplicado !== esperado,
       esperado,
       eraAntiga: antiga,
     };

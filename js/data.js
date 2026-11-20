@@ -421,7 +421,16 @@
     /* ---------- PROMOÇÃO ----------
        A promoção fica nas configurações, com data de início e fim, para
        ligar e desligar pelo painel sem precisar publicar nada.
-       Devolve null quando não há promoção valendo hoje.
+
+       ATENÇÃO à data que manda: o desconto vale pelo dia do ATENDIMENTO,
+       não pelo dia em que a cliente agendou. Quem marca hoje para um dia
+       dentro do período já leva o desconto; quem marca durante o período
+       para um dia depois dele, não leva.
+
+       Por isso são duas perguntas diferentes:
+         promoDeHoje(settings)      -> a promoção ainda está em cartaz?
+                                       (serve para mostrar a faixa no site)
+         promoValeEm(promo, data)   -> este atendimento entra no desconto?
     ---------------------------------------------------------- */
     async getPromoAtiva() {
       const settings = await DB.getSettings();
@@ -433,8 +442,9 @@
       const promo = (settings && settings.promo) || {};
       if (!promo.ativa) return null;
 
+      // Em cartaz até o último dia do período. Antes do início ela já
+      // aparece, porque dá para agendar com antecedência.
       const hoje = todayISO();
-      if (promo.inicio && hoje < promo.inicio) return null;
       if (promo.fim && hoje > promo.fim) return null;
 
       const novas = parseInt(promo.pctNovas, 10) || 0;
@@ -449,6 +459,14 @@
         inicio: promo.inicio || null,
         fim: promo.fim || null,
       };
+    },
+
+    // O atendimento marcado para esta data entra no desconto?
+    promoValeEm(promo, dataISO) {
+      if (!promo || !dataISO) return false;
+      if (promo.inicio && dataISO < promo.inicio) return false;
+      if (promo.fim && dataISO > promo.fim) return false;
+      return true;
     },
 
     /* Diz apenas se o telefone já agendou aqui alguma vez.

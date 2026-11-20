@@ -114,13 +114,22 @@
     return `${di} de ${MESES[mi - 1]} a ${df} de ${MESES[mf - 1]}`;
   }
 
+  // "23 a 27/11" — cabe embaixo do preço do cartão
+  function periodoCurto(promo) {
+    if (!promo || !promo.inicio || !promo.fim) return "";
+    const [, mi, di] = promo.inicio.split("-");
+    const [, mf, df] = promo.fim.split("-");
+    return mi === mf ? `${+di} a ${+df}/${mi}` : `${+di}/${mi} a ${+df}/${mf}`;
+  }
+
   function precoDoCartao(preco, promo) {
     if (!promo || !promo.maior) return moedaBR(preco);
     const comDesconto = DB.aplicarDesconto(preco, promo.maior);
     const umaFaixaSo = promo.pctNovas === promo.pctAntigas;
-    return `<span class="promo-de">${moedaBR(preco)}</span>${moedaBR(comDesconto)}<span class="promo-ate">com ${
+    const dias = periodoCurto(promo);
+    return `<span class="promo-de">${moedaBR(preco)}</span>${moedaBR(comDesconto)}<span class="promo-ate">${
       umaFaixaSo ? "" : "até "
-    }${promo.maior}% de desconto</span>`;
+    }${promo.maior}% ${dias ? `de ${dias}` : "de desconto"}</span>`;
   }
 
   function renderPromoBanner(promo) {
@@ -145,7 +154,7 @@
           <p class="promo-banner-titulo">${esc(promo.titulo)}</p>
           <p class="promo-banner-periodo">${
             periodo
-              ? `Desconto em todos os serviços, ${periodo}. É só agendar pelo site.`
+              ? `Desconto em todos os serviços nos atendimentos de ${periodo}. Pode marcar o seu agora.`
               : "Desconto em todos os serviços. É só agendar pelo site."
           }</p>
         </div>

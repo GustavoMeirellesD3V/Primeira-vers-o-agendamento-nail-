@@ -107,7 +107,24 @@
      O preço aparece na etapa 1, mas o WhatsApp só na etapa 4. Então a
      lista mostra "até X%" e o desconto real só é calculado no resumo,
      quando já dá para saber se a cliente é nova ou antiga.
+
+     Quem manda no desconto é a DATA DO ATENDIMENTO, não o dia em que ela
+     está agendando: dá para marcar hoje para um dia da promoção e já sair
+     com o desconto. Por isso a faixa diz em quais dias o desconto vale.
   ---------------------------------------------------------- */
+
+  // O dia escolhido entra na promoção?
+  function promoNaData() {
+    return !!state.promo && DB.promoValeEm(state.promo, state.date);
+  }
+
+  // "23 a 27/11", para caber na faixa
+  function periodoCurto() {
+    if (!state.promo || !state.promo.inicio || !state.promo.fim) return "";
+    const [, mi, di] = state.promo.inicio.split("-");
+    const [, mf, df] = state.promo.fim.split("-");
+    return mi === mf ? `${+di} a ${+df}/${mi}` : `${+di}/${mi} a ${+df}/${mf}`;
+  }
   function precoFinal() {
     if (!state.service) return 0;
     return DB.aplicarDesconto(state.service.preco, state.descontoPct);
@@ -127,7 +144,7 @@
   async function definirDesconto() {
     state.descontoPct = 0;
     state.clienteAntiga = null;
-    if (!state.promo) return;
+    if (!promoNaData()) return;
     try {
       const antiga = await DB.clienteEAntiga(state.cliente.whatsapp);
       state.clienteAntiga = antiga;
@@ -140,7 +157,10 @@
 
   function seloPromo() {
     if (!state.promo) return "";
-    return `<div class="promo-faixa">${state.promo.titulo} — até ${state.promo.maior}% de desconto</div>`;
+    const dias = periodoCurto();
+    return `<div class="promo-faixa">${state.promo.titulo} — até ${state.promo.maior}% de desconto${
+      dias ? ` nos atendimentos de ${dias}` : ""
+    }</div>`;
   }
 
   async function renderStep1() {
@@ -182,7 +202,7 @@
 
   /* ---------- ETAPA 2: DATA ---------- */
   async function renderStep2() {
-    els.main.innerHTML = `<div class="calendar-card" id="calendar-holder"></div>`;
+    els.main.innerHTML = `${seloPromo()}<div class="calendar-card" id="calendar-holder"></div>`;
     const holder = document.getElementById("calendar-holder");
 
     const today = new Date();
