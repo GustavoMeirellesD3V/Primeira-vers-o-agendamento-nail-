@@ -142,10 +142,7 @@
     }
 
     const periodo = periodoPorExtenso(promo.inicio, promo.fim);
-    const tiers = [
-      { pct: promo.pctNovas, quem: "para quem agenda aqui pela primeira vez" },
-      { pct: promo.pctAntigas, quem: "para quem já é cliente Carioca &amp; Glow" },
-    ].filter((t) => t.pct > 0);
+    const umaFaixaSo = promo.pctNovas === promo.pctAntigas;
 
     alvo.hidden = false;
     alvo.innerHTML = `
@@ -154,19 +151,15 @@
           <p class="promo-banner-titulo">${esc(promo.titulo)}</p>
           <p class="promo-banner-periodo">${
             periodo
-              ? `Desconto em todos os serviços nos atendimentos de ${periodo}. Pode marcar o seu agora.`
-              : "Desconto em todos os serviços. É só agendar pelo site."
+              ? `Em todos os serviços, nos atendimentos de ${periodo}. Pode marcar o seu agora.`
+              : "Em todos os serviços. Pode marcar o seu agora."
           }</p>
         </div>
         <div class="promo-banner-tiers">
-          ${tiers
-            .map(
-              (t) => `<div class="promo-tier">
-                <span class="promo-tier-pct">${t.pct}%</span>
-                <span class="promo-tier-quem">${t.quem}</span>
-              </div>`
-            )
-            .join("")}
+          <div class="promo-tier">
+            <span class="promo-tier-pct">${umaFaixaSo ? "" : "<em>até</em>"}${promo.maior}%</span>
+            <span class="promo-tier-quem">de desconto</span>
+          </div>
         </div>
       </div>`;
   }

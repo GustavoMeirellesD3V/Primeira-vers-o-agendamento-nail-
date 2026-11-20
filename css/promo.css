@@ -73,6 +73,16 @@
   color: var(--color-gold, #C9A24B);
 }
 
+.promo-tier-pct em {
+  font-style: normal;
+  font-size: 0.42em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-right: 0.28em;
+  vertical-align: 0.42em;
+  color: var(--mp-on-dark-soft, #C5AEB5);
+}
+
 .promo-tier-quem {
   display: block;
   margin-top: 6px;
@@ -109,7 +119,7 @@
   /* no celular as duas faixas ficam lado a lado, em colunas iguais */
   .promo-banner-tiers {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 18px;
     width: 100%;
   }
