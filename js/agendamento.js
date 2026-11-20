@@ -13,6 +13,9 @@
     calYear: new Date().getFullYear(),
     calMonth: new Date().getMonth(),
     settings: null,
+    promo: null,          // promoção valendo hoje, ou null
+    descontoPct: 0,       // desconto desta cliente, definido na etapa 4
+    clienteAntiga: null,  // true = já se atendeu aqui antes
   };
 
   const STEP_TITLES = {
@@ -34,6 +37,7 @@
     els.toast = document.getElementById("toast");
 
     state.settings = await window.NailTheme.applyTheme();
+    state.promo = DB.promoDeHoje(state.settings);
 
     // Pré-seleciona serviço se veio via ?servico=ID da home
     const params = new URLSearchParams(window.location.search);
@@ -99,9 +103,50 @@
   }
 
   /* ---------- ETAPA 1: SERVIÇO ---------- */
+  /* ---------- PROMOÇÃO ----------
+     O preço aparece na etapa 1, mas o WhatsApp só na etapa 4. Então a
+     lista mostra "até X%" e o desconto real só é calculado no resumo,
+     quando já dá para saber se a cliente é nova ou antiga.
+  ---------------------------------------------------------- */
+  function precoFinal() {
+    if (!state.service) return 0;
+    return DB.aplicarDesconto(state.service.preco, state.descontoPct);
+  }
+
+  function temDesconto() {
+    return !!(state.descontoPct && state.service);
+  }
+
+  function moeda(v) {
+    return "R$ " + Number(v).toFixed(2).replace(".", ",");
+  }
+
+  // Descobre o desconto da cliente a partir do telefone. Se a consulta
+  // falhar, trata como nova: é melhor dar o desconto maior do que
+  // travar o agendamento por causa de uma promoção.
+  async function definirDesconto() {
+    state.descontoPct = 0;
+    state.clienteAntiga = null;
+    if (!state.promo) return;
+    try {
+      const antiga = await DB.clienteEAntiga(state.cliente.whatsapp);
+      state.clienteAntiga = antiga;
+      state.descontoPct = antiga ? state.promo.pctAntigas : state.promo.pctNovas;
+    } catch (e) {
+      state.clienteAntiga = false;
+      state.descontoPct = state.promo.pctNovas;
+    }
+  }
+
+  function seloPromo() {
+    if (!state.promo) return "";
+    return `<div class="promo-faixa">${state.promo.titulo} — até ${state.promo.maior}% de desconto</div>`;
+  }
+
   async function renderStep1() {
     const services = await DB.getServices({ onlyActive: true });
     els.main.innerHTML = `
+      ${seloPromo()}
       <div id="service-list"></div>
     `;
     const list = document.getElementById("service-list");
@@ -116,7 +161,7 @@
           <div class="meta"><span>⏱ ${s.duracaoMin} min</span></div>
         </div>
         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-          <div class="price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div>
+          <div class="price">${state.promo ? `<span class="price-de">R$ ${s.preco.toFixed(2).replace(".", ",")}</span> ` : ""}R$ ${DB.aplicarDesconto(s.preco, state.promo ? state.promo.maior : 0).toFixed(2).replace(".", ",")}</div>
           <div class="check">✓</div>
         </div>
       </div>`
@@ -271,11 +316,12 @@
     return nomeOk && waOk;
   }
 
-  function goToStep5() {
+  async function goToStep5() {
     if (!validClientForm(true)) {
       showToast("Confira os campos destacados.");
       return;
     }
+    await definirDesconto();
     state.step = 5;
     render();
   }
@@ -292,7 +338,12 @@
         <div class="summary-row"><div class="label">Cliente</div><div class="value">${state.cliente.nome}</div></div>
         <div class="summary-row"><div class="label">WhatsApp</div><div class="value">${state.cliente.whatsapp}</div></div>
         ${state.cliente.observacao ? `<div class="summary-row"><div class="label">Observação</div><div class="value">${state.cliente.observacao}</div></div>` : ""}
-        <div class="summary-row"><div class="label">Valor</div><div class="value price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div></div>
+        ${
+          temDesconto()
+            ? `<div class="summary-row"><div class="label">Valor</div><div class="value price"><span class="price-de">${moeda(s.preco)}</span> ${moeda(precoFinal())}</div></div>
+               <div class="summary-row promo-linha"><div class="label">Desconto</div><div class="value">${state.descontoPct}% ${state.clienteAntiga ? "cliente Carioca &amp; Glow" : "primeira vez aqui"}</div></div>`
+            : `<div class="summary-row"><div class="label">Valor</div><div class="value price">${moeda(s.preco)}</div></div>`
+        }
       </div>
     `;
     renderFooter({ disabled: false, label: "Confirmar agendamento", onNext: confirmAppointment, primaryFullLabel: "CONFIRMAR AGENDAMENTO" });
@@ -321,6 +372,7 @@
         clienteEmail: state.cliente.email.trim(),
         observacao: state.cliente.observacao.trim(),
         status: "pendente",
+        descontoPct: state.descontoPct || null,
       });
       state.step = 6;
       render();
@@ -343,6 +395,12 @@
           <div class="summary-row"><div class="label">Horário</div><div class="value">${state.time}</div></div>
           <div class="summary-row"><div class="label">Endereço</div><div class="value">${state.settings.endereco}</div></div>
           <div class="summary-row"><div class="label">Profissional</div><div class="value">${state.settings.nome}</div></div>
+          ${
+            temDesconto()
+              ? `<div class="summary-row"><div class="label">Valor</div><div class="value price"><span class="price-de">${moeda(s.preco)}</span> ${moeda(precoFinal())}</div></div>
+                 <div class="summary-row promo-linha"><div class="label">Desconto</div><div class="value">${state.descontoPct}% ${state.promo ? state.promo.titulo : ""}</div></div>`
+              : ""
+          }
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;">
           <button class="btn btn-outline btn-block" id="add-calendar">📅 Adicionar ao calendário</button>
@@ -353,7 +411,8 @@
     `;
 
     const wa = `https://wa.me/${state.settings.whatsapp}?text=${encodeURIComponent(
-      `Olá, ${state.settings.nome}! Acabei de agendar: ${s.nome} em ${formatDateShort(state.date)} às ${state.time}.`
+      `Olá, ${state.settings.nome}! Acabei de agendar: ${s.nome} em ${formatDateShort(state.date)} às ${state.time}.` +
+        (temDesconto() ? ` (${state.descontoPct}% de desconto — ${state.promo.titulo})` : "")
     )}`;
     document.getElementById("talk-whatsapp").href = wa;
     document.getElementById("add-calendar").addEventListener("click", addToCalendar);
@@ -384,7 +443,9 @@
       <div class="book-footer-inner">
         ${
           !hideTotal && s
-            ? `<div class="total"><div class="lbl">Total</div><div class="val">R$ ${s.preco.toFixed(2).replace(".", ",")}</div></div>`
+            ? `<div class="total"><div class="lbl">Total</div><div class="val">${
+                temDesconto() ? `<span class="price-de">${moeda(s.preco)}</span> ${moeda(precoFinal())}` : moeda(s.preco)
+              }</div></div>`
             : `<div class="total"></div>`
         }
         <button class="btn btn-primary" id="footer-next" ${disabled ? "disabled" : ""} style="${disabled ? "opacity:.5;cursor:not-allowed;" : ""}">${primaryFullLabel || label}</button>

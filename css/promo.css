@@ -1,0 +1,121 @@
+/* ==================================================================
+   PROMOÇÃO — faixa da home e preços com desconto
+   ------------------------------------------------------------------
+   Camada separada de propósito. Para tirar a promoção do ar depois,
+   basta desligá-la em Configurações > Promoção: a faixa e os preços
+   riscados desaparecem sozinhos, sem publicar nada.
+   ================================================================== */
+
+.promo-banner {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 28px;
+  padding: 26px 30px;
+  border-radius: var(--mp-radius, 20px);
+  background: var(--color-ink, #241A1E);
+  border: 1px solid rgba(201, 162, 75, 0.38);
+  color: var(--mp-on-dark, #F6EBEE);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 26px;
+}
+
+/* brilho discreto atrás dos números, é o único efeito da faixa */
+.promo-banner::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  top: -120px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 162, 75, 0.17), transparent 68%);
+  pointer-events: none;
+}
+
+.promo-banner-texto { position: relative; min-width: 0; max-width: 46ch; }
+
+.promo-banner-titulo {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-size: clamp(1.6rem, 4.4vw, 2.1rem);
+  color: var(--mp-on-dark, #F6EBEE);
+}
+
+.promo-banner-periodo {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--mp-on-dark-soft, #C5AEB5);
+}
+
+.promo-banner-tiers {
+  position: relative;
+  display: flex;
+  gap: 34px;
+  flex-wrap: wrap;
+}
+
+.promo-tier { min-width: 0; }
+
+.promo-tier-pct {
+  display: block;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  font-size: clamp(2.5rem, 9vw, 3.4rem);
+  color: var(--color-gold, #C9A24B);
+}
+
+.promo-tier-quem {
+  display: block;
+  margin-top: 6px;
+  max-width: 17ch;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--mp-on-dark-soft, #C5AEB5);
+}
+
+/* ---------- preços dos cartões de serviço ---------- */
+#services-preview .service-card .price .promo-de {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-decoration: line-through;
+  color: var(--color-text-soft, #7C6A70);
+}
+#services-preview .service-card .price .promo-ate {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-dark, #A96A7E);
+}
+
+@media (max-width: 720px) {
+  .promo-banner {
+    padding: 22px;
+    gap: 20px;
+  }
+  /* no celular as duas faixas ficam lado a lado, em colunas iguais */
+  .promo-banner-tiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    width: 100%;
+  }
+  .promo-tier-quem { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-banner::after { display: none; }
+}

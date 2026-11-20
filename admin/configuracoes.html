@@ -7,15 +7,15 @@
 <title>Configurações — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=12">
-<link rel="stylesheet" href="../css/admin.css?v=12">
+<link rel="stylesheet" href="../css/style.css?v=13">
+<link rel="stylesheet" href="../css/admin.css?v=13">
 </head>
 <body>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=12"></script>
-  <script src="../js/admin.js?v=12"></script>
+  <script src="../js/data.js?v=13"></script>
+  <script src="../js/admin.js?v=13"></script>
   <script>
     const PALETTES = [
       { primary: "#C98CA0", primaryDark: "#A96A7E", primaryLight: "#F6E4E8", nude: "#EFE1D4", gold: "#C9A24B" },
@@ -39,6 +39,13 @@
       const modeloRetorno = escaparHtml((msgsSalvas.retorno || "").trim() || Admin.MODELO_RETORNO);
       const diasRetorno = parseInt(msgsSalvas.retornoDias, 10) > 0 ? parseInt(msgsSalvas.retornoDias, 10) : Admin.RETORNO_DIAS_PADRAO;
       const metaAtual = parseInt(settings.metaMensal, 10) > 0 ? parseInt(settings.metaMensal, 10) : 20;
+      const promo = settings.promo || {};
+      const promoAtiva = !!promo.ativa;
+      const promoTitulo = escaparHtml(promo.titulo || "Black Friday");
+      const promoNovas = parseInt(promo.pctNovas, 10) || 20;
+      const promoAntigas = parseInt(promo.pctAntigas, 10) || 10;
+      const promoInicio = promo.inicio || "2026-11-23";
+      const promoFim = promo.fim || "2026-11-27";
 
       content.innerHTML = `
         <div class="panel">
@@ -141,6 +148,55 @@
             <button type="submit" class="btn btn-primary btn-block">Salvar mensagens</button>
             <button type="button" class="btn btn-outline btn-block" id="restaurar-mensagens"
                     style="margin-top:10px;">Restaurar textos padrão</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Promoção</h2></div>
+          <p class="form-hint" style="margin-bottom:14px;">
+            Enquanto estiver ligada e dentro das datas, a página de agendamento mostra o desconto.
+            A cliente é reconhecida pelo WhatsApp: quem já agendou aqui alguma vez leva o desconto
+            de cliente antiga, quem nunca agendou leva o de primeira vez.
+          </p>
+
+          <form class="admin-form" id="form-promo">
+            <div class="form-group">
+              <label class="switch-row" style="display:flex;align-items:center;gap:12px;">
+                <span class="switch"><input type="checkbox" id="p-ativa" ${promoAtiva ? "checked" : ""}><span class="slider"></span></span>
+                <span>Promoção ligada</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="p-titulo">Nome da promoção</label>
+              <input type="text" id="p-titulo" value="${promoTitulo}" maxlength="40">
+              <p class="form-hint">Aparece na faixa da página de agendamento.</p>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="p-novas">Desconto para cliente nova (%)</label>
+                <input type="number" id="p-novas" min="0" max="90" value="${promoNovas}">
+              </div>
+              <div class="form-group">
+                <label for="p-antigas">Desconto para cliente antiga (%)</label>
+                <input type="number" id="p-antigas" min="0" max="90" value="${promoAntigas}">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="p-inicio">Começa em</label>
+                <input type="date" id="p-inicio" value="${promoInicio}">
+              </div>
+              <div class="form-group">
+                <label for="p-fim">Termina em</label>
+                <input type="date" id="p-fim" value="${promoFim}">
+              </div>
+            </div>
+            <p class="form-hint" style="margin-top:-4px;">As duas datas entram na promoção. Fora desse intervalo nada aparece, mesmo ligada.</p>
+
+            <button type="submit" class="btn btn-primary btn-block">Salvar promoção</button>
           </form>
         </div>
 
@@ -364,6 +420,40 @@
         } finally {
           btn.disabled = false;
           btn.textContent = "Salvar mensagens";
+        }
+      });
+
+      /* ---------- PROMOÇÃO ---------- */
+      document.getElementById("form-promo").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const inicio = document.getElementById("p-inicio").value;
+        const fim = document.getElementById("p-fim").value;
+
+        if (inicio && fim && fim < inicio) {
+          showFeedback("A data final não pode ser antes da inicial.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+        try {
+          await DB.saveSettings({
+            promo: {
+              ativa: document.getElementById("p-ativa").checked,
+              titulo: document.getElementById("p-titulo").value.trim() || "Promoção",
+              pctNovas: parseInt(document.getElementById("p-novas").value, 10) || 0,
+              pctAntigas: parseInt(document.getElementById("p-antigas").value, 10) || 0,
+              inicio: inicio || null,
+              fim: fim || null,
+            },
+          });
+          showFeedback("Promoção salva com sucesso ✓");
+        } catch (err) {
+          showFeedback("Não foi possível salvar a promoção. Tente novamente.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Salvar promoção";
         }
       });
 

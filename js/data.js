@@ -130,6 +130,7 @@
       mensagemConfirmacao: row.mensagem_confirmacao,
       mensagens: row.mensagens_whatsapp || {},
       metaMensal: row.meta_mensal,
+      promo: row.promo || {},
       tempoMinimoAgendamentoHoras: row.tempo_minimo_horas,
       diasFuturosVisiveis: row.dias_futuros_visiveis,
       cores: row.cores,
@@ -149,6 +150,7 @@
     if (obj.mensagemConfirmacao !== undefined) out.mensagem_confirmacao = obj.mensagemConfirmacao;
     if (obj.mensagens !== undefined) out.mensagens_whatsapp = obj.mensagens;
     if (obj.metaMensal !== undefined) out.meta_mensal = obj.metaMensal;
+    if (obj.promo !== undefined) out.promo = obj.promo;
     if (obj.tempoMinimoAgendamentoHoras !== undefined) out.tempo_minimo_horas = obj.tempoMinimoAgendamentoHoras;
     if (obj.diasFuturosVisiveis !== undefined) out.dias_futuros_visiveis = obj.diasFuturosVisiveis;
     if (obj.cores !== undefined) out.cores = obj.cores;
@@ -188,6 +190,7 @@
       clienteEmail: row.cliente_email,
       observacao: row.observacao,
       status: row.status,
+      descontoPct: row.desconto_pct,
       criadoEm: row.criado_em,
     };
   }
@@ -201,6 +204,7 @@
     if (obj.clienteEmail !== undefined) out.cliente_email = obj.clienteEmail;
     if (obj.observacao !== undefined) out.observacao = obj.observacao;
     if (obj.status !== undefined) out.status = obj.status;
+    if (obj.descontoPct !== undefined) out.desconto_pct = obj.descontoPct;
     return out;
   }
 
@@ -412,6 +416,56 @@
         if (a.data > c.ultimoAgendamento) c.ultimoAgendamento = a.data;
       });
       return Array.from(map.values()).sort((a, b) => (a.nome > b.nome ? 1 : -1));
+    },
+
+    /* ---------- PROMOÇÃO ----------
+       A promoção fica nas configurações, com data de início e fim, para
+       ligar e desligar pelo painel sem precisar publicar nada.
+       Devolve null quando não há promoção valendo hoje.
+    ---------------------------------------------------------- */
+    async getPromoAtiva() {
+      const settings = await DB.getSettings();
+      return DB.promoDeHoje(settings);
+    },
+
+    // Separado para o painel poder avaliar sem buscar de novo.
+    promoDeHoje(settings) {
+      const promo = (settings && settings.promo) || {};
+      if (!promo.ativa) return null;
+
+      const hoje = todayISO();
+      if (promo.inicio && hoje < promo.inicio) return null;
+      if (promo.fim && hoje > promo.fim) return null;
+
+      const novas = parseInt(promo.pctNovas, 10) || 0;
+      const antigas = parseInt(promo.pctAntigas, 10) || 0;
+      if (!novas && !antigas) return null;
+
+      return {
+        titulo: promo.titulo || "Promoção",
+        pctNovas: novas,
+        pctAntigas: antigas,
+        maior: Math.max(novas, antigas),
+        inicio: promo.inicio || null,
+        fim: promo.fim || null,
+      };
+    },
+
+    /* Diz apenas se o telefone já agendou aqui alguma vez.
+       Vai por função do banco porque a página pública não pode ler
+       a tabela de agendamentos — a função devolve só true/false. */
+    async clienteEAntiga(whatsapp) {
+      assertConfigured();
+      const { data, error } = await sb.rpc("cliente_e_antiga", { p_whatsapp: whatsapp || "" });
+      if (error) throw error;
+      return data === true;
+    },
+
+    // Preço com o desconto aplicado, arredondado em centavos.
+    aplicarDesconto(preco, pct) {
+      const p = parseInt(pct, 10) || 0;
+      if (!p) return Number(preco);
+      return Math.round(Number(preco) * (100 - p)) / 100;
     },
 
     /* ---------- META DO MES ----------

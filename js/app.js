@@ -62,6 +62,10 @@
     const heroPhotoEl = document.querySelector("[data-bind='foto']");
     if (heroPhotoEl) buildHeroGallery(heroPhotoEl, settings);
 
+    // Promoção vigente (Configurações > Promoção). Fora do período, vem null.
+    const promo = DB.promoDeHoje(settings);
+    renderPromoBanner(promo);
+
     // Renderiza serviços em destaque na home
     const previewWrap = document.getElementById("services-preview");
     if (previewWrap) {
@@ -81,12 +85,82 @@
             ${s.descricao ? `<p class="desc">${esc(s.descricao)}</p>` : ""}
             <div class="meta"><span>${ICON_CLOCK} ${s.duracaoMin} min</span></div>
           </div>
-          <div class="price">R$ ${s.preco.toFixed(2).replace(".", ",")}</div>
+          <div class="price">${precoDoCartao(s.preco, promo)}</div>
         </div>`
         )
         .join("");
     }
   });
+
+  /* ---------- PROMOÇÃO ----------
+     A faixa e os preços riscados só existem enquanto a promoção estiver
+     ligada e dentro do período cadastrado em Configurações.            */
+
+  const MESES = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  ];
+
+  function moedaBR(valor) {
+    return "R$ " + Number(valor).toFixed(2).replace(".", ",");
+  }
+
+  // "2026-11-23" + "2026-11-27" -> "23 a 27 de novembro"
+  function periodoPorExtenso(inicio, fim) {
+    if (!inicio || !fim) return "";
+    const [, mi, di] = inicio.split("-").map(Number);
+    const [, mf, df] = fim.split("-").map(Number);
+    if (mi === mf) return `${di} a ${df} de ${MESES[mi - 1]}`;
+    return `${di} de ${MESES[mi - 1]} a ${df} de ${MESES[mf - 1]}`;
+  }
+
+  function precoDoCartao(preco, promo) {
+    if (!promo || !promo.maior) return moedaBR(preco);
+    const comDesconto = DB.aplicarDesconto(preco, promo.maior);
+    const umaFaixaSo = promo.pctNovas === promo.pctAntigas;
+    return `<span class="promo-de">${moedaBR(preco)}</span>${moedaBR(comDesconto)}<span class="promo-ate">com ${
+      umaFaixaSo ? "" : "até "
+    }${promo.maior}% de desconto</span>`;
+  }
+
+  function renderPromoBanner(promo) {
+    const alvo = document.getElementById("promo-banner");
+    if (!alvo) return;
+    if (!promo) {
+      alvo.innerHTML = "";
+      alvo.hidden = true;
+      return;
+    }
+
+    const periodo = periodoPorExtenso(promo.inicio, promo.fim);
+    const tiers = [
+      { pct: promo.pctNovas, quem: "para quem agenda aqui pela primeira vez" },
+      { pct: promo.pctAntigas, quem: "para quem já é cliente Carioca &amp; Glow" },
+    ].filter((t) => t.pct > 0);
+
+    alvo.hidden = false;
+    alvo.innerHTML = `
+      <div class="promo-banner">
+        <div class="promo-banner-texto">
+          <p class="promo-banner-titulo">${esc(promo.titulo)}</p>
+          <p class="promo-banner-periodo">${
+            periodo
+              ? `Desconto em todos os serviços, ${periodo}. É só agendar pelo site.`
+              : "Desconto em todos os serviços. É só agendar pelo site."
+          }</p>
+        </div>
+        <div class="promo-banner-tiers">
+          ${tiers
+            .map(
+              (t) => `<div class="promo-tier">
+                <span class="promo-tier-pct">${t.pct}%</span>
+                <span class="promo-tier-quem">${t.quem}</span>
+              </div>`
+            )
+            .join("")}
+        </div>
+      </div>`;
+  }
 
   /* ---------- GALERIA DE FOTOS DO HERO (com setas) ----------
      Usa as fotos cadastradas manualmente em Configurações > Galeria do hero.

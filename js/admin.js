@@ -474,6 +474,54 @@
     return MODELO_CONFIRMACAO;
   }
 
+  /* ---------- VALOR A COBRAR (promoção) ----------
+     O navegador da cliente manda a marcação do desconto junto do
+     agendamento, e ninguém impede alguém de adulterar esse número.
+     Então aqui o painel não confia nele: só aceita uma das duas
+     porcentagens configuradas e confere, pela própria agenda, se a
+     cliente era mesmo nova na hora que agendou.
+  ---------------------------------------------------------- */
+  function soDigitosTel(valor) {
+    return (valor || "").replace(/\D/g, "").replace(/^55/, "");
+  }
+
+  // true = já tinha agendamento anterior; null = não dá para saber
+  function eraAntigaAoAgendar(a, todos) {
+    if (!Array.isArray(todos) || !a) return null;
+    const tel = soDigitosTel(a.clienteWhatsapp);
+    if (!tel) return null;
+    return todos.some(
+      (o) =>
+        o.id !== a.id &&
+        soDigitosTel(o.clienteWhatsapp) === tel &&
+        String(o.criadoEm || "") < String(a.criadoEm || "")
+    );
+  }
+
+  function valorDoAgendamento(a, servico, todos) {
+    const base = servico ? Number(servico.preco) : 0;
+    const promo = (cachedSettings && cachedSettings.promo) || {};
+    const pctNovas = parseInt(promo.pctNovas, 10) || 0;
+    const pctAntigas = parseInt(promo.pctAntigas, 10) || 0;
+
+    const marcado = parseInt(a.descontoPct, 10) || 0;
+    // porcentagem fora das configuradas é descartada
+    const valido = marcado > 0 && (marcado === pctNovas || marcado === pctAntigas);
+    const aplicado = valido ? marcado : 0;
+
+    const antiga = eraAntigaAoAgendar(a, todos);
+    const esperado = antiga === null ? aplicado : antiga ? pctAntigas : pctNovas;
+
+    return {
+      base,
+      pct: aplicado,
+      final: Math.round(base * (100 - aplicado)) / 100,
+      divergente: antiga !== null && aplicado !== esperado,
+      esperado,
+      eraAntiga: antiga,
+    };
+  }
+
   // Configuracoes ja carregadas pelo buildShell, sem buscar de novo.
   function settings() {
     return cachedSettings || {};
@@ -534,6 +582,8 @@
     RETORNO_DIAS_PADRAO,
     retornoDias,
     settings,
+    valorDoAgendamento,
+    eraAntigaAoAgendar,
     msgRetorno,
     linkRetorno,
     VARIAVEIS_DISPONIVEIS,

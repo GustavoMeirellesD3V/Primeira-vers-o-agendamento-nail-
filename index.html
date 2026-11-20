@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/home.css?v=2">
 <!-- NATAL: remover esta linha depois das festas -->
 <link rel="stylesheet" href="css/natal.css?v=1">
+<link rel="stylesheet" href="css/promo.css?v=1">
 </head>
 <body>
 
@@ -197,6 +198,9 @@
   <!-- ===================== SERVIÇOS ===================== -->
   <section class="mp-section mp-section--tight" id="servicos">
     <div class="mp-wrap">
+      <!-- preenchido pelo app.js quando houver promoção ligada e no período -->
+      <div id="promo-banner" class="reveal" hidden></div>
+
       <div class="mp-section-head reveal">
         <div>
           <p class="mp-kicker mp-kicker--light">O que eu faço</p>
@@ -345,8 +349,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
-  <script src="js/data.js?v=2"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/data.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
   <script>
     document.querySelectorAll('.year').forEach((el) => (el.textContent = new Date().getFullYear()));
 

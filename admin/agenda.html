@@ -7,9 +7,9 @@
 <title>Minha Agenda — Painel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=12">
+<link rel="stylesheet" href="../css/style.css?v=13">
 <link rel="stylesheet" href="../css/agendamento.css">
-<link rel="stylesheet" href="../css/admin.css?v=12">
+<link rel="stylesheet" href="../css/admin.css?v=13">
 </head>
 <body>
 
@@ -25,9 +25,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
-  <script src="../js/data.js?v=12"></script>
+  <script src="../js/data.js?v=13"></script>
   <script src="../js/calendario.js"></script>
-  <script src="../js/admin.js?v=12"></script>
+  <script src="../js/admin.js?v=13"></script>
   <script>
     (async () => {
       const content = await Admin.buildShell({ title: "Minha Agenda", subtitle: "Visualize por dia, semana ou mês" });
@@ -194,6 +194,8 @@
 
       async function openModal(id) {
         const a = await DB.getAppointment(id);
+        // a agenda inteira serve para conferir se a cliente era nova ao agendar
+        const todosOsAgendamentos = await DB.getAppointments({});
         if (!a) return;
         const svc = serviceMap[a.serviceId];
         document.getElementById("modal-content").innerHTML = `
@@ -203,6 +205,17 @@
           <div class="summary-row"><div class="label">Horário</div><div class="value">${a.horario}</div></div>
           <div class="summary-row"><div class="label">Telefone</div><div class="value">${a.clienteWhatsapp}</div></div>
           <div class="summary-row"><div class="label">Status</div><div class="value">${Admin.statusBadge(a.status)}</div></div>
+          ${(() => {
+            const v = Admin.valorDoAgendamento(a, svc, todosOsAgendamentos);
+            if (!svc) return "";
+            if (!v.pct) {
+              return `<div class="summary-row"><div class="label">Valor</div><div class="value">${Admin.formatCurrency(v.base)}</div></div>`;
+            }
+            return `<div class="summary-row"><div class="label">Valor</div><div class="value"><s style="opacity:.55;">${Admin.formatCurrency(v.base)}</s> <strong>${Admin.formatCurrency(v.final)}</strong></div></div>
+              <div class="summary-row"><div class="label">Desconto</div><div class="value">${v.pct}% ${v.eraAntiga ? "cliente antiga" : "primeira vez"}${
+                v.divergente ? ` <span style="color:var(--color-danger);font-weight:700;">(confira: o esperado era ${v.esperado}%)</span>` : ""
+              }</div></div>`;
+          })()}
           ${a.observacao ? `<div class="summary-row"><div class="label">Observação</div><div class="value">${a.observacao}</div></div>` : ""}
 
           <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
